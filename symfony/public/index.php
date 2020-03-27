@@ -6,6 +6,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 require dirname(__DIR__).'/config/bootstrap.php';
 
+ini_set('memory_limit', '512M');
 if ($_SERVER['APP_DEBUG']) {
     umask(0000);
 

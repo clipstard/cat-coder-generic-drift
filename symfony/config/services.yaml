@@ -27,3 +27,11 @@ services:
     App\Controller\:
         resource: '../src/Controller'
         tags: ['controller.service_arguments']
+
+    App\Service\Solver:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\FileReader:
+        arguments:
+            $projectDir: '%kernel.project_dir%'

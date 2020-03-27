@@ -1,0 +1,50 @@
+/public/*
+###> symfony/framework-bundle ###
+/symfony/.env
+/symfony/.env.local
+/symfony/.env.local.php
+/symfony/.env.*.local
+/symfony/public/bundles/
+/symfony/var/
+/symfony/vendor/
+###< symfony/framework-bundle ###
+
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+###> symfony/phpunit-bridge ###
+.phpunit
+.phpunit.result.cache
+/phpunit.xml
+###< symfony/phpunit-bridge ###
+
+###> symfony/web-server-bundle ###
+/.web-server-pid
+###< symfony/web-server-bundle ###
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
+
+
+
+# Process
+docker-compose.yml
+docker/nginx/symfony.conf
+docker/php-cli/symfony.ini
+docker/php-fpm/symfony.ini
+
+symfony/public/import/*
+symfony/public/images/*
+symfony/public/orders/*
+
+/logs
+/symfony/import
+symfony/composer.lock

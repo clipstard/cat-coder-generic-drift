@@ -1,0 +1,7 @@
+	Hi, I hope I find you in good condition. In last weekend(in my free time) I try for me one intersting challenge "Make Backend for iabtp in symfony" :), for self-development, but also for not forgetting symfony :).
+	I designed the database, depending on the needs of the project, but also with little resemblance to what was at Pimcore, structure that will be "easy, fast and easy to control".
+	I also managed to import products, recall that the import of 72k products in Pimcore can take between 24h-25h (until the maximum time was able to import 29k in 8h).
+	In symfony back-end I imported for tests 48k in 14min. From controllers I made CustomerController(only login with some security(token authentication), BusinessController-100% APIs, CartController-100% APIs. The APIs are identical to those of the Pimcore Back-end.Certainly the speed of communication is several times higher.
+	Regarding the back office I will make a simple alternative for him (loading / deleting csv and other things, I will already see).
+	Finally, I want to say that next week when I finally arrive, it will be possible to test, I just want to be aware that there will be an alternative.
+

@@ -1,0 +1,112 @@
+{% extends 'pdf/base.html.twig' %}
+
+{% block pdf_head %}
+    {% block pdf_title %}
+        <div class="header-pdf" style="font-weight: bold;font-size: 18px; text-align: center">
+            {% if orderInfo['supplier']['logo_path'] %}
+                <img src="{{ orderInfo['supplier']['logo_path'] }}" alt="" style="width: 15mm;">
+            {% endif %}
+            {% if orderInfo['client']['logo_path'] %}
+                <img src="{{ orderInfo['client']['logo_path']}}" alt="" style="width: 15mm;">
+            {% endif %}
+            <br>
+            {{ 'email.launch_order.order_title'|trans({'%order_nb%' : order.orderToken})|raw }}
+
+            <p>
+                {{ 'email.launch_order.body'|trans({
+                    '%supplier_name%': orderInfo['client']['name'],
+                    '%supplier_surname%': orderInfo['client']['surname']
+                })|raw|nl2br }}
+            </p>
+        </div>
+    {% endblock pdf_title %}
+{% endblock pdf_head %}
+
+{% block pdf_body %}
+    <p style="margin-top: 10px;">{{ 'email.launch_order.infos.supplier.header'|trans }}</p>
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-size: 16px;">
+        <tbody>
+        {% if orderInfo['client'] %}
+            <tr>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.full_name'|trans }} {{ orderInfo['client']['full_name'] }}
+                </td>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.company'|trans }} {{ orderInfo['client']['company'] }}
+                </td>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.siret'|trans }} {{ orderInfo['client']['siret'] }}
+                </td>
+            </tr>
+            <tr>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.adresse'|trans }} {{ orderInfo['client']['street'] }}
+                </td>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.city'|trans }} {{ orderInfo['client']['city'] }}
+                </td>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.country'|trans }} {{ orderInfo['client']['country'] }}
+                </td>
+            </tr>
+            <tr>
+                <td valign="top" width="35%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ 'email.launch_order.infos.customer.phone'|trans }} {{ orderInfo['client']['phone'] }}
+                </td>
+            </tr>
+        {% endif %}
+        </tbody>
+    </table>
+
+    <br>
+
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse;mso-table-lspace: 0pt;mso-table-rspace: 0pt;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-size: 16px;">
+        <tbody>
+        <tr>
+            <td valign="top" width="40%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                {{ 'email.launch_order.infos.product.name'|trans }}
+            </td>
+            <td valign="top" width="15%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                {{ 'email.launch_order.infos.product.delay'|trans }}
+            </td>
+            <td valign="top" width="25%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                {{ 'email.launch_order.infos.product.price'|trans }}
+            </td>
+            <td valign="top" width="15%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                {{ 'email.launch_order.infos.product.quantity'|trans }}
+            </td>
+        </tr>
+        {% set total_amount = 0 %}
+        {% for product in orderInfo['items'] %}
+            {% set total_amount = total_amount + (product['ammount']|round(2, 'floor') * product['quantity']) %}
+            <tr>
+                <td valign="top" width="40%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: bold;" class="mcnFollowContentItemContainer">
+                    {{ product['name'] }} <br>
+                    <span style="font-weight: normal; font-size: 14px">
+                        {{ 'email.launch_order.infos.product.reference'|trans }} {{ product['reference'] }} {{ 'email.launch_order.infos.product.brand'|trans }} {{ product['brand'] }}
+                    </span>
+                </td>
+                <td valign="top" width="15%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ product['delay'] }}{{ 'email.launch_order.infos.product.days'|trans }}
+                </td>
+                <td valign="top" width="25%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ product['price']|round(2, 'floor') }} {{ 'email.launch_order.infos.product.euro'|trans }}
+                </td>
+                <td valign="top" width="15%" style="padding-bottom: 9px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;font-style: normal;font-weight: normal;" class="mcnFollowContentItemContainer">
+                    {{ product['quantity'] }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <p style="text-align: right">{{ 'email.launch_order.infos.product.total'|trans }}{{ total_amount|round(2, 'floor') }}{{ 'email.launch_order.infos.product.euro'|trans }}</p>
+
+    <div class="links" style="margin-top: 10%">
+        <p>{{ 'email.launch_order.ending'|trans|raw|nl2br }}</p>
+        <div class="order-buttons" style="text-align: center">
+            <a href="{{ orderInfo['links']['validated'] }}" class="btn btn-lg btn-primary">{{ 'email.launch_order.actions.confirm'|trans }}</a>
+            <a href="{{ orderInfo['links']['canceled'] }}" class="btn btn-lg btn-primary">{{ 'email.launch_order.actions.cancel'|trans }}</a>
+        </div>
+    </div>
+{% endblock %}

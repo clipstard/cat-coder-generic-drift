@@ -1,0 +1,89 @@
+version: '3'
+services:
+    mysql:
+        image: mysql:5.7
+        container_name: s-iabtp-mysql
+        environment:
+            - MYSQL_ROOT_PASSWORD=${PASSWORD}
+            - MYSQL_DATABASE=${DATABASE}
+            - MYSQL_USER=${USER}
+            - MYSQL_PASSWORD=${PASSWORD}
+        networks:
+            - default
+    mailcatcher:
+        image: schickling/mailcatcher
+        container_name: s-iabtp-mailcatcher
+        ports:
+            - "2080:1080"
+        networks:
+            - default
+    php-fpm:
+        build:
+            context: ./docker/php-fpm
+            args:
+                - INSTALL_XDEBUG=true
+                - XDEBUG_REMOTE_HOST=127.0.0.1
+                - XDEBUG_REMOTE_PORT=9000
+                - XDEBUG_IDE_KEY=s-iabtpbtp
+                - UID=1001
+                - GID=1001
+        volumes:
+            - ./symfony:/var/www/symfony
+        networks:
+            - default
+        container_name: s-iabtp-php
+        working_dir: /var/www/symfony
+        restart: always
+        expose:
+            - 9001
+        links:
+            - mysql
+            - mailcatcher
+        depends_on:
+          - mysql
+
+    php-cli:
+        build:
+            context: ./docker/php-cli
+            args:
+                - UID=1001
+                - GID=1001
+        container_name: s-iabtp-cli
+        networks:
+            - default
+        volumes:
+            - ./symfony:/var/www/symfony
+        restart: unless-stopped
+        working_dir: /var/www/symfony
+        links:
+            - mysql
+
+    nginx:
+        build:
+            context: ./docker/nginx
+            args:
+                - UID=1001
+                - GID=1001
+        container_name: s-iabtp-nginx
+        restart: unless-stopped
+        volumes:
+            - ./symfony:/var/www/symfony
+        working_dir: /var/www/symfony
+        networks:
+            - default
+        depends_on:
+            - php-fpm
+        expose:
+            - 80
+    redis:
+        image: redis:alpine
+        restart: unless-stopped
+        networks:
+            - default
+        volumes:
+            - "./docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf"
+        container_name: s-iabtp-redis
+
+networks:
+    default:
+        external: true

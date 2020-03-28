@@ -40,6 +40,14 @@ class Point
         return $this;
     }
 
+    /**
+     * @param Point $point
+     * @return int
+     */
+    public function getManhattanDistance(Point $point): int
+    {
+        return abs($this->x - $point->getX()) + abs($this->y - $point->getY());
+    }
 
     /**
      * @return null

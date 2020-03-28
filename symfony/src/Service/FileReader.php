@@ -83,7 +83,7 @@ class FileReader
         $fp = fopen($fullPath, 'rb');
         $arr = [];
 
-        while ($row = fgets($fp, 4096)) {
+        while ($row = fgets($fp)) {
             $explodedRow = explode($delimiter, $row);
             $replacedRow = [];
             foreach ($explodedRow as $item) {
@@ -116,7 +116,7 @@ class FileReader
         $isMatrix = false;
         if (is_array($data) && count($data)) {
             $isArray = true;
-            if (is_array($data[0]) && count($data[0])) {
+            if (isset($data[0]) && is_array($data[0]) && count($data[0])) {
                 $isMatrix = true;
             }
         }

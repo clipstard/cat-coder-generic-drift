@@ -3,8 +3,8 @@ upstream php {
 }
 
 server {
-    server_name api.ywork.loc;
-    root /var/www/public;
+    server_name coder.loc;
+    root /home/dell/IdeaProjects/catcoder/symfony/public;
     listen 80;
 
     error_page 401 403 404 500 502 503 504 /500.html;
@@ -15,6 +15,13 @@ server {
     }
 
     location / {
+        add_header "Access-Control-Allow-Origin" *;
+        add_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS, HEAD, DELETE, PUT";
+        add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept, x-switch-user";
+        if ($request_method = OPTIONS ) {
+           return 200;
+        }
+
         try_files $uri @rewriteapp;
         proxy_read_timeout 300;
     }

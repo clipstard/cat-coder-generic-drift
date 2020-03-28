@@ -6,11 +6,15 @@ class Pair
 {
     protected $x;
     protected $y;
+    protected $i;
+    protected $j;
 
-    public function __construct($x = null, $y = null)
+    public function __construct($x = null, $y = null, $i = null, $j = null)
     {
         $this->x = $x;
         $this->y = $y;
+        $this->i = $i;
+        $this->j = $j;
     }
 
     /**
@@ -68,8 +72,34 @@ class Pair
         }
     }
 
+    /**
+     * @return null
+     */
+    public function getI()
+    {
+        return $this->i;
+    }
+
+    /**
+     * @return null
+     */
+    public function getJ()
+    {
+        return $this->j;
+    }
+
     public function __toString()
     {
         return "{$this->x} {$this->y}";
+    }
+
+    /**
+     * @return array
+     */
+    public function toArray()
+    {
+        return [
+            $this->getX(), $this->getI(), $this->getY(), $this->getJ()
+        ];
     }
 }

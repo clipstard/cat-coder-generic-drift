@@ -2,302 +2,171 @@
 
 namespace App\Service;
 
-use App\Entity\Player;
-use App\Entity\Point;
-
 class Solver
 {
     /** @var string $projectDir */
-    protected string $projectDir;
+    protected $projectDir;
 
     /** @var FileReader $fileReader */
-    protected FileReader $fileReader;
+    protected $fileReader;
 
     public function __construct(
-        string     $projectDir,
+        string $projectDir,
         FileReader $fileReader
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(4)->setSubLevel('example');
+        $this->fileReader = $fileReader->setLevel(3);
     }
 
-    private array $coinMap = [[]];
-    private array $map = [];
-    private array $movementsMap = [];
-    private int $maxMovements = 0;
-    private ?Point $root = null;
-
-    public function solveFirstLevel()
+    /**
+     * @param mixed ...$args
+     * @return array|bool
+     * @throws \Exception
+     */
+    public function solve(...$args)
     {
-        $data = $this->fileReader->read();
-        $data = $this->array_flatten($data);
-        $gridSize = (int) $data[0];
-        unset($data[0]);
 
-        $count = 0;
-        $isAlive = true;
-
-        $index = 0;
-        $map = [];
-        foreach ($data as $rowNum => $row) {
-            if ($index++ >= $gridSize) break;
-
-            $items = str_split($row);
-            $map[] = $items;
-            unset($data[$rowNum]);
+        $data = '125 133 134 135 136 -52 -51 -50 -49 -48 -47 -46 -45 66 67 68 69 70 71 -38 -37 -36 -35 -34 -33 -32 -31 -30 -29 -132 -131 -130 -193 -192 -191 -190 -189 -188 -187 -186 -185 -184 -183 -182 -181 -180 -179 -178 -177 -176 -175 -174 -173 -172 -171 -170 -169 -77 -76 -75 -74 -73 -72 18 19 20 21 22 23 24 25 26 27 28 -164 -163 -65 -64 -63 -62 -61 -60 -59 -58 -57 -56 -55 -54 -53 39 40 41 42 43 44 159 160 161 162 -17 -16 -15 -14 -13 -12 -11 -10 -9 -8 -7 -6 -5 -4 -3 -2 -1 -168 -167 -166 -165 126 127 128 129 86 87 88 89 90 91 92 93 94 95 96 -124 -123 -122 -121 -120 -119 -118 -117 -116 -115 -114 -113 -112 -111 -110 -109 -108 -107 -106 -105 -104 -103 -102 -101 -100 -99 -98 -97 153 154 155 156 157 158 -148 -147 -146 -145 -144 -143 -142 -141 -140 -139 -138 -137 -85 -84 -83 -82 -81 -80 -79 -78 -152 -151 -150 -149';
+//        $data = '8 0 3 1 6 5 -2 4 7 -1';
+        $arr = explode(' ', $data);
+        $intValue = [];
+        foreach ($arr as $item) {
+            $intValue[] = (int)$item;
         }
 
-        $data = array_values($data);
-        [$startX, $startY, $maxMovements] = $data;
+        $c = count($intValue);
 
-        $this->maxMovements = (int) $maxMovements;
-        $currentX = (int) $startX - 1;
-        $currentY = (int) $startY - 1;
-        $this->root = new Point($currentX, $currentY);
-        $this->root->isRoot = true;
-        $countCoins = 0;
-        $this->map = $map;
 
-        foreach ($map as $x => $row) {
-            foreach ($row as $y => $item) {
-                if ($item === 'C') {
-                    $this->coinMap[$x][$y] = 'C';
-                    $countCoins++;
-                }
-            }
-        }
+        $pairs = $this->findPairs($intValue);
+        return $this->jsonify($pairs);
 
-        /*
-         *                 if (isset($this->coinMap[$x][$y])) {
-                    dump([
-                        'position' => 'this',
-                        'x' => $x,
-                        'y' => $y,
-                    ]);
-                } elseif (isset($this->coinMap[$x][$y + 1])) { // check right
-                    dump([
-                        'position' => 'right',
-                        'x' => $x, 'y' => $y + 1,
-                    ]);
-                } elseif (isset($this->coinMap[$x][$y - 1])) { // check left
-                    dump([
-                        'position' => 'left',
-                        'x' => $x, 'y' => $y - 1,
-                    ]);
-                } elseif (isset($this->coinMap[$x + 1][$y])) { // check bottom
-                    dump([
-                        'position' => 'top',
-                        'x' => $x + 1, 'y' => $y,
-                    ]);
-                } elseif (isset($this->coinMap[$x - 1][$y])) { // check top
-                    dump([
-                        'position' => 'bottom',
-                        'x' => $x - 1, 'y' => $y,
-                    ]);
-                }
-         */
-        $nbPoints = 0;
-        $this->addNextPoint($currentY, $currentX, $this->root);
-
-        $point = $this->root;
-        $path = '';
-        $pointsCounted = 0;
-        while ($point !== null) {
-            $path .= $point->getPreviousMovement();
-            if (!$point->collected) {
-                $pointsCounted++;
-            }
-
-            $point->collected = true;
-            $point = $point->getPrevious();
-        }
-
-        $str = '';
-        foreach ($this->map as $row) {
-            $str .= implode('', $row) . "\n";
-        }
-
-        $res = [$count];
-        $this->fileReader->write($res);
-
-        return $this->jsonify($res, 10);
+//        $data = $this->fileReader->read(' ');
+//        return $this->fileReader->write($data, ' ') ? $data : false;
     }
 
-    public function addNextPoint($x, $y, Point $point)
+    /**
+     * @param $array
+     * @return Pair[]|array
+     */
+    private function findPairs($array)
     {
-        $leftX = $x - 1;
-        $rightX = $x + 1;
-        $topX = $x;
-        $bottomX = $x;
-        $leftY = $y;
-        $rightY = $y;
-        $topY = $y - 1;
-        $bottomY = $y + 1;
+        $pairs = [];
 
-        $left = @$this->coinMap[$leftY][$leftX];
-        $right = @$this->coinMap[$rightY][$rightX];
-        $top = @$this->coinMap[$topY][$topX];
-        $bottom = @$this->coinMap[$bottomY][$bottomX];
-        unset($this->map[$y][$x]);
-        $str = '';
-        foreach ($this->map as $row) {
-            $str .= implode('', $row) . "\n";
-        }
-
-        if ($left && !$point->isInTheTree($leftX, $leftY)) {
-            $point->setLeft(new Point($leftX, $leftY));
-            $this->addNextPoint($leftX, $leftY, $point->left);
-        }
-
-        if ($right && !$point->isInTheTree($rightX, $rightY)) {
-            $point->setRight(new Point($rightX, $rightY));
-            $this->addNextPoint($rightX, $rightY, $point->right);
-        }
-
-        if ($top && !$point->isInTheTree($topX, $topY)) {
-            $point->setTop(new Point($topX, $topY));
-            $this->addNextPoint($topX, $topY, $point->top);
-        }
-
-        if ($bottom && !$point->isInTheTree($bottomX, $bottomY)) {
-            $point->setBottom(new Point($bottomX, $bottomY));
-            $this->addNextPoint($bottomX, $bottomY, $point->bottom);
-        }
-    }
-
-    function branchCompleted(Point $point): bool
-    {
-        $current = $this->root;
-
-        while ($current !== null) {
-            if ($current->eq($point)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    function array_flatten($array): array
-    {
-        if (!is_array($array)) {
-            return [];
-        }
-
-        $result = array();
-        foreach ($array as $key => $value) {
-            if (is_array($value)) {
-                $result = array_merge($result, $this->array_flatten($value));
-            } else {
-                $result = array_merge($result, array($key => $value));
-            }
-        }
-
-        return $result;
-    }
-
-    public function countUniques($array)
-    {
         $c = count($array);
-        $count = 0;
-        $items = [];
-        $found = false;
-        foreach ($array as $item) {
-            if (!in_array($item, $items, true)) {
-                $items[] = $item;
-            }
-        }
-
-        return count($items);
-    }
-
-    public function removeDuplicates($array)
-    {
-        $arr = [];
-        foreach ($array as $item) {
-            if (!in_array($item, $arr, true)) {
-                $arr[] = $item;
-            }
-        }
-
-        return $arr;
-    }
-
-    /**
-     * @param $id
-     * @param PLayer[] $players
-     * @return int|null
-     */
-    public function findPlayer($id, array $players): ?int
-    {
-        foreach ($players as $key => $player) {
-            if ($player->id === $id) {
-                return $key;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param Player[] $players
-     */
-    public function collapseSamePLayers(array $players): array
-    {
-        $newPlayers = [];
-        $len = count($players);
-        $stats = [];
-        for ($i = 0; $i < $len; $i++) {
-            $id = $players[$i]->id;
-            $win = $players[$i]->wins;
-
-            if (array_key_exists($id, $stats)) {
-                if ($win) {
-                    $stats[$id] += $win;
+        $lastPair = null;
+        for ($i = 0; $i < ($c - 1); $i++) {
+            for ($j = ($i + 1); $j < $c; $j++) {
+                $sum = $array[$i] + $array[$j];
+                if ($sum === 1 || $sum === -1) {
+                    $pairs[] = new Pair($array[$i], $array[$j]);
                 }
-            } else {
-                $stats[$id] = $win;
             }
         }
 
-        foreach ($stats as $key => $stat) {
-            $newPlayers[] = new Player((int)substr($key, 3), null, $stat);
-        }
-
-        return $newPlayers;
+        Pair::sortByX($pairs);
+        return $pairs;
     }
 
-    public function jsonify($data, $limit = 100, $withCount = false)
+    public function solveExample()
     {
-        if (!is_array($data)) {
-            return "" . $data;
+//        $data = "8 0 3 1 6 5 -2 4 7 3 1 -2 5";
+        $data = "193 125 133 134 135 136 -52 -51 -50 -49 -48 -47 -46 -45 66 67 68 69 70 71 -38 -37 -36 -35 -34 -33 -32 -31 -30 -29 -132 -131 -130 -193 -192 -191 -190 -189 -188 -187 -186 -185 -184 -183 -182 -181 -180 -179 -178 -177 -176 -175 -174 -173 -172 -171 -170 -169 -77 -76 -75 -74 -73 -72 18 19 20 21 22 23 24 25 26 27 28 -164 -163 -65 -64 -63 -62 -61 -60 -59 -58 -57 -56 -55 -54 -53 39 40 41 42 43 44 159 160 161 162 -17 -16 -15 -14 -13 -12 -11 -10 -9 -8 -7 -6 -5 -4 -3 -2 -1 -168 -167 -166 -165 126 127 128 129 86 87 88 89 90 91 92 93 94 95 96 -124 -123 -122 -121 -120 -119 -118 -117 -116 -115 -114 -113 -112 -111 -110 -109 -108 -107 -106 -105 -104 -103 -102 -101 -100 -99 -98 -97 153 154 155 156 157 158 -148 -147 -146 -145 -144 -143 -142 -141 -140 -139 -138 -137 -85 -84 -83 -82 -81 -80 -79 -78 -152 -151 -150 -149 -45 12 44 94";
+        $arr = explode(' ', $data);
+        $intValue = [];
+        $intPermutation = [];
+        $first = true;
+        $length = null;
+        $c = count($arr);
+        for ($i = 0; $i < $c; $i++) {
+            if (!$i) {
+                $length = (int)$arr[$i];
+                continue;
+            }
+
+            if ($i <= $length) {
+                $intValue[] = (int)$arr[$i];
+            } else {
+                $intPermutation[] = $arr[$i];
+            }
+        }
+
+        $this->makePermutations($intValue, $intPermutation);
+
+        return $this->jsonify($intValue, 100, false);
+    }
+
+    private function makePermutations(&$array, &$permutation)
+    {
+        if (count($permutation) % 4) {
+            throw new \Exception('invalid permutation');
+        }
+
+        $indexes = [$permutation[1], $permutation[3]];
+        $values = [$permutation[0], $permutation[2]];
+
+        $c = count($array);
+
+        $branch = [];
+        for ($i = 0; $i < $c; $i++) {
+            if ($i >= $indexes[0] && $i <= $indexes[1]) {
+                $branch[] = $array[$i];
+            }
+        }
+
+        $direction = $values[0] + $values[1] === 1;
+        $branch = $this->swapBranch($branch, $direction);
+
+        $p = 0;
+        for ($i = 0; $i < $c; $i++) {
+            if ($i >= $indexes[0] && $i <= $indexes[1]) {
+                $array[$i] = $branch[$p++];
+            }
+        }
+    }
+
+    private function swapBranch($branch, $direction)
+    {
+        $newBranch = $direction ?
+            array_slice($branch, 0, count($branch) - 1) :
+            array_slice($branch, 1, count($branch));
+
+        $newBranch = array_reverse($newBranch);
+        $newBranch = array_map(static function ($item) { return $item * -1;}, $newBranch);
+
+        $newBranch = $direction ?
+            array_merge($newBranch, [$branch[count($branch) - 1]]) :
+            array_merge([$branch[0]], $newBranch);
+        return $newBranch;
+    }
+
+    public function jsonify($data, $limit = 100, $withCount = true)
+    {
+        if (is_string($data)) {
+            return $data;
         }
 
         $str = '';
 
-
-        if (count($data) && !is_array($data[array_key_first($data)])) {
+        if (is_array($data) && !is_array($data[0])) {
             $c = count($data);
             if ($withCount) {
                 $str .= $c . ' ';
             }
 
-            $keys = array_keys($data);
             for ($i = 0; $i < $c; $i++) {
-                $str .= "{$data[$keys[$i]]} ";
+                $str .= "{$data[$i]} ";
                 if ($i && $i % $limit === 0) {
                     $str .= "<br />";
                 }
             }
         }
 
-        if (count($data) && is_array($data[array_key_first($data)])) {
-            foreach ($data as $key => $row) {
+        if (is_array($data) && is_array($data[0])) {
+            foreach ($data as $row) {
                 $c = count($row);
-                $keys = array_keys($row);
                 for ($i = 0; $i < $c; $i++) {
-                    $str .= "{$row[$keys[$i]]}, ";
+                    $str .= "{$row[$i]}, ";
                     if ($i && $i % $limit === 0) {
                         $str .= "<br />";
                     }
@@ -307,5 +176,17 @@ class Solver
         }
 
         return $str;
+    }
+
+    public function sortByX(&$array)
+    {
+        $c = count($array);
+        for ($i = 0; $i < ($c - 1); $i++) {
+            for ($j = 1; $j < $c; $j++) {
+                if ($array[$i]['x'] > $array[$j]['x']) {
+                    [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
+                }
+            }
+        }
     }
 }

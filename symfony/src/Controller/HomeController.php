@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Service\Solver;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
 class HomeController extends AbstractController
 {
@@ -17,15 +17,10 @@ class HomeController extends AbstractController
         $this->solver = $solver;
     }
 
-    #[Route('/', name: 'home')]
     public function __invoke()
     {
 
-//        for ($i = 0; $i < 4; $i++) {
-//            $this->solver->solve(1, $i, true);
-//        }
-
-        return new Response($this->solver->solveFirstLevel());
+        return new Response($this->solver->solveExample());
 //        return new JsonResponse(['response' => $this->solver->solve()]);
     }
 }

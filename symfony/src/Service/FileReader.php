@@ -97,7 +97,7 @@ class FileReader
             $arr[] = $replacedRow;
         }
 
-        return $arr;
+        return $arr[0];
     }
 
     public function write($data, $delimiter = ' ')
@@ -114,9 +114,9 @@ class FileReader
 
         $isArray = false;
         $isMatrix = false;
-        if (count($data)) {
+        if (is_array($data) && count($data)) {
             $isArray = true;
-            if (count($data[0])) {
+            if (is_array($data[0]) && count($data[0])) {
                 $isMatrix = true;
             }
         }

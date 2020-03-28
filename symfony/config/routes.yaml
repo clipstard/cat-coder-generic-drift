@@ -1,3 +1,13 @@
 home:
     path: /home
     controller: App\Controller\HomeController
+
+file_handler:
+    path: /upload
+    controller: App\Controller\FileHandler
+
+
+file_upload:
+    path: /upload/file
+    controller: App\Controller\FileUploader
+

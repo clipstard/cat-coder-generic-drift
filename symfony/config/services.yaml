@@ -32,6 +32,11 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Controller\FileUploader:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+
     App\Service\FileReader:
         arguments:
             $projectDir: '%kernel.project_dir%'

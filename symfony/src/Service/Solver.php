@@ -16,7 +16,7 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader;
+        $this->fileReader = $fileReader->setLevel(3);
     }
 
     /**
@@ -26,6 +26,7 @@ class Solver
      */
     public function solve(...$args)
     {
-        return $this->fileReader->read('level3-0.in');
+        $data = $this->fileReader->read(' ');
+        return $this->fileReader->write($data, ' ') ? $data : false;
     }
 }

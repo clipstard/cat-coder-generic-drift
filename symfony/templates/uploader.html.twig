@@ -1,0 +1,44 @@
+<html>
+<head>
+    <title>
+        Importer
+    </title>
+</head>
+<script
+        async
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+<script>
+    function testFile() {
+        let d = document.getElementById('file_input');
+        console.log(d.value);
+        console.log(d.files[0]);
+    }
+
+    function importFile() {
+        let d = document.getElementById('file_input');
+        console.log(d.files);
+        var formData = new FormData();
+
+        // add assoc key values, this will be posts values
+        formData.append("file", d.files[0]);
+
+        $.ajax({
+            url: '/upload/file',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(console.log);
+    }
+</script>
+<body>
+
+    <h1> Import </h1>
+    <input type="file" id="file_input" onchange="testFile()">
+    <button onclick="importFile()"> import</button>
+
+</body>
+
+</html>

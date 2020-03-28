@@ -1,5 +1,0 @@
-Dir::Cache {
-  srcpkgcache "";
-  pkgcache "";
-}
-Acquire::http {No-Cache=True;}

@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Service\Solver;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 
-class HomeController
+class HomeController extends AbstractController
 {
     /** @var Solver $solver */
     protected $solver;
@@ -15,12 +17,10 @@ class HomeController
         $this->solver = $solver;
     }
 
-    /**
-     * @return JsonResponse
-     * @throws \Exception
-     */
     public function __invoke()
     {
-        return new JsonResponse(['response' => $this->solver->solve()]);
+
+        return new Response($this->solver->solveExample());
+//        return new JsonResponse(['response' => $this->solver->solve()]);
     }
 }

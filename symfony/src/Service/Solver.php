@@ -16,12 +16,11 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(2)->setSubLevel(3);
+        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('02');
     }
 
     public function solve($level = 1, $sublevel = 0, $run = false)
     {
-        ini_set('memory_limit', '2G');
         if ($run) {
             $this->fileReader->setLevel($level)->setSubLevel($sublevel);
         }
@@ -29,7 +28,12 @@ class Solver
         $input = $this->fileReader->read();
         $intValue = [];
         foreach ($input as $item) {
-            $intValue[] = (int)$item;
+            $intItem = (int) $item;
+            if (!$intItem) {
+                $intValue[] = $item;
+            } else {
+                $intValue[] = (int)$item;
+            }
         }
 
 //        $nrOfTests = $intValue[0];
@@ -42,38 +46,44 @@ class Solver
         $table = new Table($size[0], $size[1]);
 
         $a = 1;
+        $p = 0;
         $coords = [];
         for ($i = 0; $i < $nrOfPoints * 2; $i += 2) {
             $points[] = new Point($data[$i], $data[$i + 1]);
+            $p = $i + 2;
         }
 
         foreach ($points as $point) {
-            [$x, $y] = $table->getCoordsByPosition($point->getPosition());
-            $point->setX($x)->setY($y);
+            $table->fillPoint($point);
         }
 
-        $result = [];
-//        foreach ($coords as $coord) {
-//            foreach ($coord as $value) {
-//                $result[] = $value;
-//            }
-//        }
+        $nrOfPaths = $data[$p++];
+        $pathsData = array_slice($data, $p);
+        $c = count($pathsData);
 
-        $calculatedColors = [];
-        $distances = [];
-        Point::sortByPosition($points);
-        $c = count($points);
-        /** @var Point $point */
-        for ($i = 0; $i < $nrOfPoints; $i++) {
-            $color = $points[$i]->getColor();
-            if (!in_array($color, $calculatedColors)) {
-                $distances[$color] = $points[$i]->getManhattanDistance($this->findNextPointByColor($points, $i+1, $color));
-                $calculatedColors[] = $color;
+        $paths = [];
+
+        for ($i = 0; $i < $nrOfPaths; $i++) {
+            $paths[] = $this->slicePath($pathsData);
+        }
+
+        $exit = [];
+        $results = [];
+
+        foreach ($paths as $path) {
+            [$length, $position] = $this->followPath($table, $path);
+            $flag = false;
+            foreach ($points as $point) {
+                if ($position !== $path[1] && $point->getPosition() === $position) {
+                   $flag = true;
+                }
             }
-        }
-        ksort($distances);
 
-        $this->fileReader->write($distances, ' ');
+            $results[] = $flag ? 1 : -1;
+            $results[] = $length;
+        }
+
+        $this->fileReader->write($results, ' ');
 //        $sortedPoints = $points;
 //        Point::sortByPosition($sortedPoints);
 
@@ -82,7 +92,42 @@ class Solver
 //            $table->fillPoint($point);
 //        }
 
-        return $this->jsonify($distances, 30, false);
+        return $this->jsonify($results, 30, false);
+    }
+
+    public function slicePath(&$data)
+    {
+        $length = $data[2];
+        $start = $length + 3;
+
+        $return = array_slice($data, 0, $start);
+        $data = array_slice($data, $start);
+        return $return;
+    }
+
+    /**
+     * @param Table $table
+     * @param $path
+     * @return mixed
+     */
+    public function followPath($table, $path)
+    {
+        $u = 0;
+        [$color, $starting, $length] = $path;
+        $c = count($path);
+        $steps = 0;
+        for ($i = 3; $i < $c; $i++) {
+            try {
+                $starting = $table->doAction($starting, $color, $path[$i]);
+            } catch (\Exception $exception) {
+                $steps++;
+                break;
+            }
+
+            $steps++;
+        }
+
+        return [$steps, $starting];
     }
 
     /**
@@ -148,6 +193,7 @@ class Solver
 
         $str = '';
 
+
         if (is_array($data) && !is_array($data[array_key_first($data)])) {
             $c = count($data);
             if ($withCount) {
@@ -163,7 +209,7 @@ class Solver
             }
         }
 
-        if (is_array($data) && is_array($data[array_key_first($data)])) {
+        if (is_array($data) && isset($data[array_key_first($data)]) && is_array($data[array_key_first($data)])) {
             foreach ($data as $row) {
                 $c = count($row);
                 $keys = array_keys($data);

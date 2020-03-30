@@ -8,8 +8,8 @@ class FileReader
     const BASE_BATH = '/public/level/';
     /** @var int */
     private $level = 0;
-    /** @var int */
-    private $subLevel = 0;
+    /** @var int|string */
+    private $subLevel = '0';
 
     /** @var string $projectDir */
     protected $projectDir;
@@ -23,19 +23,19 @@ class FileReader
     }
 
     /**
-     * @return int
+     * @return int|string
      */
-    public function getSubLevel(): int
+    public function getSubLevel()
     {
         return $this->subLevel;
     }
 
     /**
-     * @param int $subLevel
+     * @param int|string $subLevel
      *
      * @return FileReader
      */
-    public function setSubLevel(int $subLevel): FileReader
+    public function setSubLevel($subLevel): FileReader
     {
         $this->subLevel = $subLevel;
 

@@ -56,14 +56,60 @@ class Solver
         /** @var Earning $f */
         foreach ($fEarnings as $f) {
             $amount = $f->getAmount();
-            $payed = $this->findExactAmount($bEarnings, $amount);
+            $earningsInRange = $this->getEarningsInRange($bEarnings, $f->getFrom(), $f->getTo());
+            $payed = $this->findExactAmount($earningsInRange, $amount);
             if (!$payed) {
-                $results[] = $f->getDay();
+                $results[] = $f->getFrom();
             }
         }
 
+        $results = $this->removeDuplicates($results);
+
 //        $lastDay = $fEarnings[count($fEarnings) - 1]->getDay();
-        return $this->jsonify($results, 30, false);
+        return $this->jsonify(array_merge($fEarnings, $bEarnings), 1, false);
+    }
+
+    /**
+     * @param Earning[]|array $earnings
+     * @param $from
+     * @param $to
+     * @return Earning[]|array
+     */
+    private function getEarningsInRange($earnings, $from, $to)
+    {
+        /** @var Earning[] $arr */
+        $arr = [];
+        /** @var Earning $earning */
+        foreach ($earnings as $earning) {
+            $d = $earning->getDay();
+            if ($d >= $from && $d < $to) {
+                $arr[] = $earning;
+            }
+        }
+
+        return $arr;
+    }
+
+    public function removeDuplicates($array)
+    {
+        $arr = [];
+        foreach ($array as $item) {
+            if (!in_array($item, $arr, true)) {
+                $arr[] = $item;
+            }
+        }
+
+        return $arr;
+    }
+
+    private function findGreaterAmount($earnings, $amount): bool
+    {
+        $sum = 0;
+        foreach ($earnings as $earning) {
+            $sum += $earning->getAmount();
+        }
+
+        return $sum >= $amount;
     }
 
     private function findExactAmount($bEarnings, $amount): int
@@ -98,7 +144,13 @@ class Solver
             return $payed;
         }
 
+
         $c = count($earnings);
+
+        if ($c && $c < 4) {
+            return $this->isMakingSum($amount, ...$earnings) ? $amount : 0;
+        }
+
         for ($i = 0; $i < $c - 3; $i++) {
             for ($j = $i + 1; $j < $c - 2; $j++) {
                 if ($this->isMakingSum($amount, $earnings[$i], $earnings[$j])) {
@@ -198,8 +250,23 @@ class Solver
         $c = count ($data);
         $arr = [];
         $a = 1;
-        for ($i = 0; $i < $c; $i += 3) {
-            $e = new Earning($data[$i], (int)$data[$i + 1], (int) $data[$i + 2]);
+        for ($i = 0; $i < $c;) {
+            $destination = $data[$i];
+            $e = new Earning($destination);
+
+            if ($destination === 'F') {
+                $e
+                    ->setDay($data[$i + 1])
+                    ->setFrom($e->getDay())
+                    ->setTo($e->getDay() + $data[$i + 2])
+                    ->setAmount($data[$i + 3]);
+                $i += 4;
+            } else {
+                $e->setDay($data[$i + 1])
+                    ->setAmount($data[$i + 2]);
+                $i += 3;
+            }
+
             $e->setId($a++);
             $arr[] = $e;
         }

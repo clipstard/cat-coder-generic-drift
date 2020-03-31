@@ -21,6 +21,11 @@ class Earning
      */
     protected $active = true;
 
+    /** @var int|null */
+    protected $from;
+    /** @var int|null */
+    protected $to;
+
     public function __construct($destination = null, $day = null, $amount = null)
     {
         $this->destination = $destination;
@@ -28,9 +33,54 @@ class Earning
         $this->amount = $amount;
     }
 
+    /**
+     * @param int|null $from
+     *
+     * @return Earning
+     */
+    public function setFrom(?int $from): Earning
+    {
+        $this->from = $from;
+
+        return $this;
+    }
+
+    /**
+     * @param int|null $to
+     *
+     * @return Earning
+     */
+    public function setTo(?int $to): Earning
+    {
+        $this->to = $to;
+
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getFrom(): ?int
+    {
+        return $this->from;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getTo(): ?int
+    {
+        return $this->to;
+    }
+
+    public function isInDayFrame(int $date)
+    {
+        return $this->getFrom() > $date && $this->getTo() < $date;
+    }
+
     public function __toString(): string
     {
-        return $this->destination ?? "";
+        return "{$this->destination} {$this->day} {$this->to} {$this->amount}";
     }
 
     /**
@@ -141,7 +191,7 @@ class Earning
     {
         $parameter = ucfirst($parameter);
         try {
-            $e = (new self())->{'get'. $parameter}();
+            $e = (new self())->{'get' . $parameter}();
         } catch (\Exception $exception) {
             return;
         }
@@ -149,7 +199,7 @@ class Earning
         $c = count($earnings);
         for ($i = 0; $i < $c - 1; $i++) {
             for ($j = $i + 1; $j < $c; $j++) {
-                if ($earnings[$i]->{'get'. $parameter}() > $earnings[$j]->{'get'. $parameter}()) {
+                if ($earnings[$i]->{'get' . $parameter}() > $earnings[$j]->{'get' . $parameter}()) {
                     [$earnings[$i], $earnings[$j]] = [$earnings[$j], $earnings[$i]];
                 }
             }

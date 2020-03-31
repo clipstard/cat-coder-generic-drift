@@ -24,3 +24,4 @@ class HomeController extends AbstractController
 //        return new JsonResponse(['response' => $this->solver->solve()]);
     }
 }
+

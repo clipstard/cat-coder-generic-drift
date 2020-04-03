@@ -67,7 +67,7 @@ class FileReader
      */
     public function getFileName(): string
     {
-        return "level{$this->level}-{$this->subLevel}";
+        return "level{$this->level}_{$this->subLevel}";
     }
 
     public function read($delimiter = ' ')
@@ -97,7 +97,7 @@ class FileReader
             $arr[] = $replacedRow;
         }
 
-        return $arr[0];
+        return $arr;
     }
 
     public function write($data, $delimiter = ' ')
@@ -124,10 +124,29 @@ class FileReader
         try {
             if ($isMatrix) {
                 foreach ($data as $row) {
-                    fwrite($fp, implode($delimiter, $row) . "\n");
+                    if (is_float($row[0])){
+                        $str = '';
+                        foreach ($row as $item) {
+                            $str .= sprintf('%.3f', $item) . $delimiter;
+                        }
+
+                        fwrite($fp, $str . "\n");
+                    } else {
+                        fwrite($fp, implode($delimiter, $row). "\n");
+                    }
                 }
             } elseif ($isArray) {
-                fwrite($fp, implode($delimiter, $data). "\n");
+                $str = '';
+                if (is_float($data[0])){
+                    foreach ($data as $item) {
+                        $str .= sprintf('%.3f', $item) . $delimiter;
+                }
+                    fwrite($fp, $str . "\n");
+                } else {
+                    fwrite($fp, implode($delimiter, $data). "\n");
+                }
+
+
             } else {
                 fwrite($fp, $data . "\n");
             }

@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Entity\Service\Earning;
+use App\Entity\Service\Coord;
 use App\Entity\Service\Pair;
 use App\Entity\Service\Point;
 use App\Entity\Service\Table;
@@ -21,73 +21,123 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(1)->setSubLevel('0');
+        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('2');
     }
 
     public function solveFirstLevel()
     {
-        $data = $this->fileReader->read();
-//        $data = "F 1 739 F 2 164 F 3 227 F 4 778 F 5 423 F 6 538 F 7 155 F 8 425 F 9 878 B 1 739 B 2 164 B 3 227 B 4 778 B 5 423 B 6 538 B 7 155 B 8 425 B 9 878";
+        $data = $this->fileReader->read(',');
 
-//        $arrData = explode(' ', $data);
+        /** @var Coord[] $coords */
+        $coords = $this->readCoords($data);
+        $flights = $this->distinct2($coords);
+        ksort($flights);
+//        Coord::order($flights);
+        $result = [];
 
-        /** @var Earning[] $earnings */
-        $earnings = $this->readEarnings($data);
-
-        Earning::orderBy($earnings);
-
-        $results = [];
-        $fEarnings = [];
-        /** @var Earning[] $bEarnings */
-        $bEarnings = [];
-
-        foreach ($earnings as $earning) {
-            if ($earning->getDestination() === 'B') {
-                $bEarnings[] = $earning;
-            } else {
-                $fEarnings[] = $earning;
-            }
+        /** @var Coord $coord */
+        foreach ($flights as $coord) {
+            $result[] = [
+                $coord->getFrom(),
+                $coord->getTo(),
+//                $coord->getTakeoff(),
+                $coord->getCount(),
+            ];
         }
 
-        $i = 0;
-        $c = count($bEarnings);
-        $sum = 0;
+        $this->fileReader->write($result);
 
-        /** @var Earning $f */
-        foreach ($fEarnings as $f) {
-            $amount = $f->getAmount();
-            $earningsInRange = $this->getEarningsInRange($bEarnings, $f->getFrom(), $f->getTo());
-            $payed = $this->findExactAmount($earningsInRange, $amount);
-            if (!$payed) {
-                $results[] = $f->getFrom();
-            }
-        }
-
-        $results = $this->removeDuplicates($results);
-
-//        $lastDay = $fEarnings[count($fEarnings) - 1]->getDay();
-        return $this->jsonify(array_merge($fEarnings, $bEarnings), 1, false);
+        return $this->jsonify( $result,10, false);
     }
 
     /**
-     * @param Earning[]|array $earnings
-     * @param $from
-     * @param $to
-     * @return Earning[]|array
+     * @param Coord[] $array
+     * @return array
      */
-    private function getEarningsInRange($earnings, $from, $to)
+    public function distinctFlights($array)
     {
-        /** @var Earning[] $arr */
         $arr = [];
-        /** @var Earning $earning */
-        foreach ($earnings as $earning) {
-            $d = $earning->getDay();
-            if ($d >= $from && $d < $to) {
-                $arr[] = $earning;
+        $c = count($array);
+        for ($i = 0; $i < $c - 1; $i++) {
+            $found = true;
+            for ($j = $i + 1; $j < $c; $j++) {
+                if (
+                    $array[$i]->getFrom() === $array[$j]->getFrom() &&
+                    $array[$i]->getTo() === $array[$j]->getTo()
+                ) {
+                    $key = $array[$i]->getFrom() . $array[$i]->getTo();
+                    $found = false;
+                    if (array_key_exists($key, $arr)) {
+                        if ($arr[$key]->getTakeoff() !== $array[$i]->getTakeoff() && $arr[$key]->getId() !== $array[$i]->getId()) {
+                            $arr[$key]->inc();
+                        }
+                    } else {
+                        $arr[$key] = $array[$i]->inc();
+                    }
+                }
+            }
+
+            if ($found) {
+                $key = $array[$i]->getFrom() . $array[$i]->getTo();
+                if (array_key_exists($key, $arr)) {
+                    if ($arr[$key]->getTakeoff() !== $array[$i]->getTakeoff() && $arr[$key]->getId() !== $array[$i]->getId()) {
+                        $arr[$key]->inc();
+                    }
+                } else {
+                    $arr[$key] = $array[$i]->inc();
+                }
             }
         }
 
         return $arr;
+    }
+
+    /**
+     * @param Coord[] $array
+     * @return array
+     */
+    public function distinct2($array)
+    {
+        $arr = [];
+        $times = [];
+        $c = count($array);
+        /** @var Coord $item */
+        foreach ($array as $item) {
+            $key = $item->getFrom() . $item->getTo();
+            if (!array_key_exists($key, $arr)) {
+                $arr[strtoupper($key)] = $item;
+            }
+        }
+
+        foreach ($array as $item) {
+            $key = strtoupper($item->getFrom() . $item->getTo());
+            if (!array_key_exists($key, $times)) {
+                $times[$key] = [];
+            }
+
+            $times[$key][] = $item->getTakeoff();
+        }
+
+        foreach ($times as $key => $time) {
+            $arr[$key]->setCount($this->countUniques($time));
+        }
+
+        return $arr;
+    }
+
+    public function countUniques($array)
+    {
+        $c = count($array);
+        $count = 0;
+        $items = [];
+        $found = false;
+        foreach ($array as $item) {
+            if (!in_array($item, $items, true)) {
+                $items[] = $item;
+            }
+        }
+
+        return count($items);
     }
 
     public function removeDuplicates($array)
@@ -102,134 +152,47 @@ class Solver
         return $arr;
     }
 
-    private function findGreaterAmount($earnings, $amount): bool
+    public function getMinMax($array, $direction, $property = 'time')
     {
-        $sum = 0;
-        foreach ($earnings as $earning) {
-            $sum += $earning->getAmount();
+        $property = ucfirst($property);
+
+        $min = 999999.0;
+        $max = -99990.0;
+        $c = count($array);
+        for ($i = 0; $i < $c - 1; $i++) {
+            if ($array[$i]->{'get' . $property}() < $min) {
+                $min = $array[$i]->{'get' . $property}();
+            }
+
+            if ($array[$i]->{'get' . $property}() > $max) {
+                $max = $array[$i]->{'get' . $property}();
+            }
         }
 
-        return $sum >= $amount;
+        return $direction ? $min : $max;
     }
 
-    private function findExactAmount($bEarnings, $amount): int
+    public function readCoords($data)
     {
-        $canBe = [];
-        /** @var Earning $earning */
-        foreach ($bEarnings as $earning) {
-            if (!$earning->isActive()) continue;
+        $arr = [];
+        $rows = (int)$data[0][0];
+        $c = count ($data);
+        $a = 0;
+        for ($i = 1; $i <= $rows ; $i++) {
+            $coord = new Coord((float)$data[$i][0]);
+            $coord
+                ->setId($a++)
+                ->setLat($data[$i][1])
+                ->setLong($data[$i][2])
+                ->setAlt($data[$i][3])
+                ->setFrom($data[$i][4])
+                ->setTo($data[$i][5])
+                ->setTakeoff($data[$i][6]);
 
-            $payed = $earning->getAmount();
-            if ($payed === $amount) {
-               $earning->setActive(false);
-               return $amount;
-            }
-
-            if ($payed < $amount) {
-                $canBe[] = $earning;
-            }
+            $arr[] = $coord;
         }
 
-        return $this->findPayedSums($canBe, $amount);
-    }
-
-    /**
-     * @param Earning[] $earnings
-     * @param int $amount
-     * @return int
-     */
-    private function findPayedSums($earnings, $amount)
-    {
-        if ($payed = $this->findSameSum($earnings, $amount)) {
-            return $payed;
-        }
-
-
-        $c = count($earnings);
-
-        if ($c && $c < 4) {
-            return $this->isMakingSum($amount, ...$earnings) ? $amount : 0;
-        }
-
-        for ($i = 0; $i < $c - 3; $i++) {
-            for ($j = $i + 1; $j < $c - 2; $j++) {
-                if ($this->isMakingSum($amount, $earnings[$i], $earnings[$j])) {
-                    return $amount;
-                }
-
-                for ($k = $j + 1; $k < $c - 1; $k++) {
-                    if (
-                        $this->isMakingSum($amount, $earnings[$j], $earnings[$k]) ||
-                        $this->isMakingSum($amount, $earnings[$j], $earnings[$k], $earnings[$i])
-                    ) {
-                        return $amount;
-                    }
-
-                    for($l = $k + 1; $l < $c; $l++) {
-                        if (
-                            $this->isMakingSum($amount, $earnings[$l], $earnings[$k]) ||
-                            $this->isMakingSum($amount, $earnings[$j], $earnings[$k], $earnings[$l]) ||
-                            $this->isMakingSum($amount, $earnings[$j], $earnings[$k], $earnings[$l], $earnings[$i])
-                        ) {
-                            return $amount;
-                        }
-                    }
-                }
-            }
-        }
-
-        return 0;
-    }
-
-    private function isMakingSum($amount, ...$args): bool
-    {
-        $sum = 0;
-        /** @var Earning $arg */
-        foreach ($args as $arg) {
-            $sum += $arg->getAmount();
-        }
-
-        if ($amount === $sum) {
-            foreach ($args as $arg) {
-                $arg->setActive(false);
-            }
-        }
-
-        return $amount === $sum;
-    }
-
-    private function findSameSum($earnings, $amount, $notInclude = []): int
-    {
-        $c = count($earnings);
-        $found = [];
-        for ($i = 0; $i < $c - 1; $i++ ) {
-            if (!$earnings[$i]->isActive()) continue;
-            $a = $earnings[$i]->getAmount();
-            if (count($found) && $this->getItemByIndex($found, 0)->getAmount() !== $a) continue;
-
-            for ($j = $i + 1; $j < $c; $j++) {
-                if (!$earnings[$j]->isActive()) continue;
-                if ($a === $earnings[$j]->getAmount() && !in_array($a, $notInclude, true)) {
-                    $found[$earnings[$i]->getId()] = $earnings[$i];
-                    $found[$earnings[$j]->getId()] = $earnings[$j];
-                }
-            }
-        }
-
-        $f = count($found);
-        if ($f && $this->getItemByIndex($found, 0)->getAmount() * $f === $amount) {
-            foreach ($found as $item) {
-                $item->setActive(false);
-            }
-
-            return $amount;
-        }
-
-        if ($f) {
-            return $this->findSameSum($earnings, $amount, array_merge($notInclude, [$this->getItemByIndex($found, 0)->getAmount()]));
-        }
-
-        return 0;
+        return $arr;
     }
 
     public function getItemByIndex($array, $index)
@@ -243,36 +206,6 @@ class Solver
         }
 
         return null;
-    }
-
-    private function readEarnings($data)
-    {
-        $c = count ($data);
-        $arr = [];
-        $a = 1;
-        for ($i = 0; $i < $c;) {
-            $destination = $data[$i];
-            $e = new Earning($destination);
-
-            if ($destination === 'F') {
-                $e
-                    ->setDay($data[$i + 1])
-                    ->setDriver($data[$i + 2])
-                    ->setFrom($e->getDay())
-                    ->setTo($e->getDay() + $data[$i + 4])
-                    ->setAmount($data[$i + 4]);
-                $i += 4;
-            } else {
-                $e->setDay($data[$i + 1])
-                    ->setAmount($data[$i + 2]);
-                $i += 3;
-            }
-
-            $e->setId($a++);
-            $arr[] = $e;
-        }
-
-        return $arr;
     }
 
     /**

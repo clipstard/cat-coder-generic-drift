@@ -257,9 +257,10 @@ class Solver
             if ($destination === 'F') {
                 $e
                     ->setDay($data[$i + 1])
+                    ->setDriver($data[$i + 2])
                     ->setFrom($e->getDay())
-                    ->setTo($e->getDay() + $data[$i + 2])
-                    ->setAmount($data[$i + 3]);
+                    ->setTo($e->getDay() + $data[$i + 4])
+                    ->setAmount($data[$i + 4]);
                 $i += 4;
             } else {
                 $e->setDay($data[$i + 1])

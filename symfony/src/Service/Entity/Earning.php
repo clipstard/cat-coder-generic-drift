@@ -16,6 +16,9 @@ class Earning
     /** @var int */
     protected $id;
 
+    /** @var int|null */
+    protected $driver;
+
     /**
      * @var bool
      */
@@ -41,6 +44,26 @@ class Earning
     public function setFrom(?int $from): Earning
     {
         $this->from = $from;
+
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getDriver(): ?int
+    {
+        return $this->driver;
+    }
+
+    /**
+     * @param int|null $driver
+     *
+     * @return Earning
+     */
+    public function setDriver(?int $driver): Earning
+    {
+        $this->driver = $driver;
 
         return $this;
     }

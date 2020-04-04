@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Entity\Service\Coord;
+
 class FileReader
 {
 
@@ -97,6 +99,48 @@ class FileReader
             $arr[] = $replacedRow;
         }
 
+        fclose($fp);
+
+        return $arr;
+    }
+
+    public function getFlightData($flightId)
+    {
+        $dir = $this->projectDir . self::BASE_BATH . $this->getLevel() . '/in/';
+        $fullPath = $dir . $flightId . '.csv';
+        $fp = fopen($fullPath, 'rb');
+        $arr = [];
+
+        $i = 0;
+        $from = null;
+        $to = null;
+        $startpoint = null;
+        $length = null;
+
+        while ($row = fgetcsv($fp, 256, ',')) {
+            if ($i === 0) {
+                $from = $row[0];
+            } elseif ($i === 1) {
+                $to = $row[0];
+            } elseif ($i === 2) {
+                $startpoint = $row[0];
+            } elseif ($i === 3) {
+                $length = $row[0];
+            } else {
+                $arr[] = (new Coord(null, null))
+                    ->setTimeOffset($row[0])
+                    ->setFrom($from)
+                    ->setTo($to)
+                    ->setTime($startpoint)
+                    ->setLat($row[1])
+                    ->setLong($row[2])
+                    ->setAlt($row[3]);
+            }
+            $i++;
+        }
+
+        fclose($fp);
+
         return $arr;
     }
 
@@ -127,7 +171,7 @@ class FileReader
                     if (is_float($row[0])){
                         $str = '';
                         foreach ($row as $item) {
-                            $str .= sprintf('%.3f', $item) . $delimiter;
+                            $str .= sprintf('%.9f', $item) . $delimiter;
                         }
 
                         fwrite($fp, $str . "\n");
@@ -139,7 +183,7 @@ class FileReader
                 $str = '';
                 if (is_float($data[0])){
                     foreach ($data as $item) {
-                        $str .= sprintf('%.3f', $item) . $delimiter;
+                        $str .= sprintf('%.9f', $item) . $delimiter;
                 }
                     fwrite($fp, $str . "\n");
                 } else {

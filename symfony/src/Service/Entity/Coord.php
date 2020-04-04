@@ -28,13 +28,37 @@ class Coord
 
     protected $count = 0;
 
+    /** @var int|null */
+    protected $flightId;
 
-    public function __construct($time = null, $lat = null, $long = null, $altitude = null)
+    /** @var int|null */
+    protected $timeOffset;
+
+    public function __construct($flightId = null, $time = null)
     {
-        $this->lat = $lat;
+        $this->flightId = $flightId;
         $this->time = $time;
-        $this->long = $long;
-        $this->alt = $altitude;
+    }
+
+
+    /**
+     * @return int|null
+     */
+    public function getTimeOffset(): ?int
+    {
+        return $this->timeOffset;
+    }
+
+    /**
+     * @param int|null $timeOffset
+     *
+     * @return Coord
+     */
+    public function setTimeOffset(?int $timeOffset): Coord
+    {
+        $this->timeOffset = $timeOffset;
+
+        return $this;
     }
 
     /**
@@ -43,6 +67,26 @@ class Coord
     public function inc(): self
     {
         $this->count++;
+
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getFlightId(): ?int
+    {
+        return $this->flightId;
+    }
+
+    /**
+     * @param int|null $flightId
+     *
+     * @return Coord
+     */
+    public function setFlightId(?int $flightId): Coord
+    {
+        $this->flightId = $flightId;
 
         return $this;
     }

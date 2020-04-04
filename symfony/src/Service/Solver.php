@@ -12,6 +12,8 @@ class Solver
     /** @var string $projectDir */
     protected $projectDir;
 
+    const R = 6371000.0;
+
     /** @var FileReader $fileReader */
     protected $fileReader;
 
@@ -21,33 +23,96 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('2');
+        $this->fileReader = $fileReader->setLevel(4)->setSubLevel('5');
     }
 
     public function solveFirstLevel()
     {
-        $data = $this->fileReader->read(',');
+        $data = $this->fileReader->read(' ');
 
         /** @var Coord[] $coords */
         $coords = $this->readCoords($data);
-        $flights = $this->distinct2($coords);
-        ksort($flights);
-//        Coord::order($flights);
         $result = [];
 
-        /** @var Coord $coord */
-        foreach ($flights as $coord) {
-            $result[] = [
-                $coord->getFrom(),
-                $coord->getTo(),
-//                $coord->getTakeoff(),
-                $coord->getCount(),
-            ];
+        foreach ($coords as $coord) {
+            $result[] = $this->getCoordsAtTime($coord);
         }
 
         $this->fileReader->write($result);
 
-        return $this->jsonify( $result,10, false);
+        return $this->jsonify($result, 10, false);
+    }
+
+    public function getCoordsAtTime(Coord $coord)
+    {
+        /** @var Coord[] $flightData */
+        $flightData = $this->fileReader->getFlightData($coord->getFlightId());
+        $timeOffset = $coord->getTime() - $flightData[0]->getTime();
+
+        $c = count($flightData);
+        for ($i = 0; $i < $c; $i++) {
+            if ($flightData[$i]->getTimeOffset() === $timeOffset) {
+                return [
+                    $flightData[$i]->getLat(),
+                    $flightData[$i]->getLong(),
+                    $flightData[$i]->getAlt()
+                ];
+            }
+
+            if ($flightData[$i]->getTimeOffset() > $timeOffset) {
+                $before = $flightData[$i - 1];
+                $after = $flightData[$i];
+                return [
+                    $this->getInterLat($before, $after, $timeOffset),
+                    $this->getInterLong($before, $after, $timeOffset),
+                    $this->getInterAlt($before, $after, $timeOffset),
+                ];
+            }
+        }
+
+        return [0, 0, 0];
+    }
+
+    public function getInterAlt(Coord $coord1,Coord $coord2, $x2)
+    {
+        $x1 = $coord1->getTimeOffset();
+        $x3 = $coord2->getTimeOffset();
+        $y1 = $coord1->getAlt();
+        $y3 = $coord2->getAlt();
+        return (((($x2 - $x1) * ($y3 - $y1)) / ($x3 - $x1)) + $y1);
+    }
+
+    public function getInterLat(Coord $coord1,Coord $coord2, $x2)
+    {
+        $x1 = $coord1->getTimeOffset();
+        $x3 = $coord2->getTimeOffset();
+        $y1 = $coord1->getLat();
+        $y3 = $coord2->getLat();
+        $y2 = ((($x2 - $x1) * ($y3 - $y1)) / ($x3 - $x1)) + $y1;
+        return $y2;
+    }
+
+    public function getInterLong(Coord $coord1,Coord $coord2, $x2)
+    {
+        $x1 = $coord1->getTimeOffset();
+        $x3 = $coord2->getTimeOffset();
+        $y1 = $coord1->getLong();
+        $y3 = $coord2->getLong();
+        $y2 = ((($x2 - $x1) * ($y3 - $y1)) / ($x3 - $x1)) + $y1;
+
+        return $y2;
+    }
+
+
+    public function transform($lat, $long, $alt)
+    {
+        $rLat = ($lat * M_PI / 180);
+        $rLong = ($long * M_PI / 180);
+        $x = (self::R + $alt) * cos($rLat) * cos($rLong);
+        $y = (self::R + $alt) * cos($rLat) * sin($rLong);
+        $z = (self::R + $alt) * sin($rLat);
+
+        return [$x, $y, $z];
     }
 
     /**
@@ -176,20 +241,10 @@ class Solver
     {
         $arr = [];
         $rows = (int)$data[0][0];
-        $c = count ($data);
+        $c = count($data);
         $a = 0;
-        for ($i = 1; $i <= $rows ; $i++) {
-            $coord = new Coord((float)$data[$i][0]);
-            $coord
-                ->setId($a++)
-                ->setLat($data[$i][1])
-                ->setLong($data[$i][2])
-                ->setAlt($data[$i][3])
-                ->setFrom($data[$i][4])
-                ->setTo($data[$i][5])
-                ->setTakeoff($data[$i][6]);
-
-            $arr[] = $coord;
+        for ($i = 1; $i <= $rows; $i++) {
+            $arr[] = new Coord((int)$data[$i][0], (int)$data[$i][1]);
         }
 
         return $arr;

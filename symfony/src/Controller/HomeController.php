@@ -22,8 +22,7 @@ class HomeController extends AbstractController
 
         $x = 1;
 
-        return new Response('');
-        return new Response($this->solver->solveLast());
+        return new Response($this->solver->solve());
 //        return new JsonResponse(['response' => $this->solver->solve()]);
     }
 }

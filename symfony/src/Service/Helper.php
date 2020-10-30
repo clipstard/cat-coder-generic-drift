@@ -64,6 +64,9 @@ class Helper
     }
 
     function readLevel($data) {
+        $rowsAsData = 3;
+        $maxPower = null;
+        $maxCost = null;
         $yPoint = null;
         $nrOfTasks = null;
         $lines = [];
@@ -71,27 +74,35 @@ class Helper
 
         foreach ($data as $index => $row) {
             if ($index === 0) {
-                if (is_array($row)) {
-                    $yPoint = (int)$row[0];
-                } else {
-                    $yPoint = (int)$row;
-                }
+                $maxPower = self::e($row);
             }
 
-            if ($index > 0 && $index <= $yPoint) {
-                $lines[] = is_array($row) ? $row[0] : $row;
+            if ($index === 1) {
+                $maxCost = self::e($row);
             }
 
-            if ($index > $yPoint) {
-                if ($index === $yPoint + 1) {
-                        $nrOfTasks =  is_array($row) ? (int) $row[0] : $row;
+            if ($index === 2) {
+                $yPoint = self::e($row);
+            }
+
+            if ($index > 2 && $index <= $yPoint + ($rowsAsData - 1)) {
+                $lines[] = self::e($row);
+            }
+
+            if ($index > $yPoint + ($rowsAsData - 1)) {
+                if ($index === $yPoint + ($rowsAsData - 1) + 1) {
+                    $nrOfTasks = self::e($row);
                 } else {
                     $tasks[] = $row;
                 }
             }
         }
 
-        return [$yPoint, $lines, $nrOfTasks, $tasks];
+        return [$maxPower, $maxCost, $yPoint, $lines, $nrOfTasks, $tasks];
+    }
+
+    private static function e($data) {
+        return is_array($data) ? (int)$data[0] : $data;
     }
 
     function writeLevel($data)

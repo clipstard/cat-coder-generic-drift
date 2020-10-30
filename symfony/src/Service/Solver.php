@@ -19,7 +19,7 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('3');
+        $this->fileReader = $fileReader->setLevel(4)->setSubLevel('1');
         $this->helper = $helper;
     }
 
@@ -32,7 +32,68 @@ class Solver
     {
         $data = $this->fileReader->read(' ', true);
 
-        return $this->helper->jsonify($this->solveLevel3($data));
+        return $this->helper->jsonify($this->solveLevel4($data));
+    }
+
+    public function solveLevel4($data)
+    {
+        [$maxPower, $maxCost, $yPoint, $lines, $nrOfTasks, $tasks] = $this->helper->readLevel($data);
+        $results = [];
+
+        $tasks = $this->sortTasksByInterval($tasks);
+
+        $lines = $this->fillPower($lines, $maxPower);
+
+        foreach ($tasks as $task) {
+            $results[] = $this->findConsumption($lines, $task, $maxCost);
+        }
+
+        $this->sortById($results);
+
+        $results = array_merge([[$nrOfTasks]], $results);
+        $this->helper->writeLevel($results);
+
+        return $results;
+    }
+
+    public function findConsumption(&$lines, $task, $maxCost)
+    {
+        [$id, $power, $start, $end] = $task;
+
+        $cost = 0;
+        $consumed = [];
+        $index = $this->findLowerCostId($lines, $start, $end + 1);
+
+        for ($i = 0; $i < $power; $i++) {
+            if ($lines[$index][1] > 0) {
+                $lines[$index][1]--;
+                if (array_key_exists($index, $consumed)) {
+                    $consumed[$index]++;
+                } else {
+                    $consumed[$index] = 1;
+                }
+                $cost += $lines[$index][0];
+            } else {
+                $index = $this->findLowerCostId($lines, $start, $end + 1);
+                $lines[$index][1]--;
+                if (array_key_exists($index, $consumed)) {
+                    $consumed[$index]++;
+                } else {
+                    $consumed[$index] = 1;
+                }
+
+                $cost += $lines[$index][0];
+            }
+        }
+
+        $values = [];
+
+        foreach ($consumed as $key => $value) {
+            $values[] = $key;
+            $values[] = $value;
+        }
+
+        return array_merge([$id], $values);
     }
 
     public function solveLevel3($data)
@@ -50,6 +111,39 @@ class Solver
         $this->helper->writeLevel($results);
 
         return $data;
+    }
+
+    public function sortTasksByInterval($tasks)
+    {
+        $c = count($tasks);
+        for ($i = 0; $i < $c - 1; $i++) {
+            for ($j = 0 + 1; $j < $c; $j++ ) {
+                $left = $tasks[$i];
+                $right = $tasks[$j];
+                if ($left[3] - $left[2] > $right[3] - $right[2]) {
+                    [$tasks[$i], $tasks[$j]] = [$tasks[$j], $tasks[$i]];
+                }
+            }
+        }
+
+        $this->sortTasksByConsumption($tasks);
+
+        return $tasks;
+    }
+
+    public function sortTasksByConsumption(&$tasks)
+    {
+        $c = count($tasks);
+
+        for ($i = 0; $i < $c - 1; $i++) {
+            for ($j = 0 + 1; $j < $c; $j++ ) {
+                $left = $tasks[$i];
+                $right = $tasks[$j];
+                if ($left[3] - $left[2] === $right[3] - $right[2] && $left[1] < $right[1]) {
+                    [$tasks[$i], $tasks[$j]] = [$tasks[$j], $tasks[$i]];
+                }
+            }
+        }
     }
 
     public function findPointsInSameRegion($yPoint, $nr, $lines)
@@ -131,20 +225,37 @@ class Solver
     public function findLowerCostId($lines, $from = 0, $to = null)
     {
         $min = 999999;
-        $solution = null;
+        $solution = $from;
         $c = count($lines);
         if (!$to) {
             $to = $c;
         }
 
         for ($i = $from; $i < $to; $i++) {
-            if ($lines[$i] < $min) {
-                $min = $lines[$i];
+            if ($lines[$i][0] < $min && $lines[$i][1] > 0) {
+                $min = $lines[$i][0];
                 $solution = $i;
             }
         }
 
         return $solution;
+    }
+
+    public function sortById(&$results)
+    {
+        $c = count($results);
+        for ($i = 0; $i < $c - 1; $i++) {
+            for ($j = $i + 1; $j < $c; $j++ ) {
+                if ($results[$i][0] > $results[$j][0]) {
+                    [$results[$i], $results[$j]] = [$results[$j], $results[$i]];
+                }
+            }
+        }
+    }
+
+    public function fillPower($lines, $power)
+    {
+        return array_map(function ($line) use ($power) { return [$line, $power]; }, $lines);
     }
 
     /**

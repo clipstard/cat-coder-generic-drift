@@ -67,7 +67,7 @@ class FileReader
      */
     public function getFileName(): string
     {
-        return "level{$this->level}-{$this->subLevel}";
+        return "level{$this->level}_{$this->subLevel}";
     }
 
     public function read($delimiter = ' ', $asInt = false)
@@ -78,7 +78,7 @@ class FileReader
             throw new \Exception('file not exists');
         }
 
-        $fullPath = $dir . $this->getFileName() . '.txt';
+        $fullPath = $dir . $this->getFileName() . '.in';
 
         $fp = fopen($fullPath, 'rb');
         $arr = [];

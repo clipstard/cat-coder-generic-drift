@@ -19,7 +19,7 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(1)->setSubLevel('4');
+        $this->fileReader = $fileReader->setLevel(2)->setSubLevel('example');
         $this->helper = $helper;
     }
 
@@ -52,13 +52,30 @@ class Solver
         return $points;
     }
 
+
     function solveLevel1($data) {
-        [$yPoint, $nrOfLines, $lines] = $this->helper->readLevel($data);
+        [$yPoint, $lines] = $this->helper->readLevel($data);
 
-        $points = $this->findPointsInSameRegion($yPoint, $nrOfLines, $lines);
+        $response = $this->findLowerCostId($lines);
 
-        $this->helper->writeLevel($this->helper->matrixToArray($points));
-        return $this->helper->jsonify($points, 100, false);
+//        $points = $this->findPointsInSameRegion($yPoint, $lines);
+
+        $this->helper->writeLevel($response);
+        return $response;
+    }
+
+    public function findLowerCostId($lines)
+    {
+        $min = 999999;
+        $solution = null;
+        foreach ($lines as $index => $line) {
+            if ($line < $min) {
+                $min = $line;
+                $solution = $index;
+            }
+        }
+
+        return $solution;
     }
 
     /**

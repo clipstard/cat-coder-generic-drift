@@ -68,25 +68,17 @@ class Helper
         $nrOfLines = null;
         $lines = [];
 
-        foreach ($data as $index => $row) {
-            if (is_array($row)) {
-                if ($index === 0) {
-                    if ($index === 0) {
-                        $yPoint = (int) $row[0];
-                    }
-                }
-
-                if ($index === 1) {
-                    $nrOfLines = (int) $row[0];
-                }
+        foreach ($this->matrixToArray($data) as $index => $row) {
+            if ($index === 0) {
+                $yPoint = (int) $row;
             }
 
-            if ($index > 1) {
+            if ($index > 0) {
                 $lines[] = $row;
             }
         }
 
-        return [$yPoint, $nrOfLines, $lines];
+        return [$yPoint, $lines];
     }
 
     function writeLevel($data)

@@ -8,7 +8,7 @@ class FileReader
     const BASE_BATH = '/public/level/';
     /** @var int */
     private $level = 0;
-    /** @var int */
+    /** @var int|string */
     private $subLevel = 0;
 
     /** @var string $projectDir */
@@ -23,19 +23,19 @@ class FileReader
     }
 
     /**
-     * @return int
+     * @return int|string
      */
-    public function getSubLevel(): int
+    public function getSubLevel()
     {
         return $this->subLevel;
     }
 
     /**
-     * @param int $subLevel
+     * @param int|string $subLevel
      *
      * @return FileReader
      */
-    public function setSubLevel(int $subLevel): FileReader
+    public function setSubLevel($subLevel): FileReader
     {
         $this->subLevel = $subLevel;
 
@@ -70,7 +70,7 @@ class FileReader
         return "level{$this->level}-{$this->subLevel}";
     }
 
-    public function read($delimiter = ' ')
+    public function read($delimiter = ' ', $asInt = false)
     {
         $dir = $this->projectDir . self::BASE_BATH . $this->getLevel() . '/in/';
 
@@ -78,7 +78,7 @@ class FileReader
             throw new \Exception('file not exists');
         }
 
-        $fullPath = $dir . $this->getFileName() . '.in';
+        $fullPath = $dir . $this->getFileName() . '.txt';
 
         $fp = fopen($fullPath, 'rb');
         $arr = [];
@@ -90,7 +90,7 @@ class FileReader
                 $matched = null;
                 preg_match_all("/[^(\r|\n|\r\n)]+/", $item, $matched);
                 if (count($matched) && count($matched[0])) {
-                    $replacedRow[] = $matched[0][0];
+                    $replacedRow[] = $asInt ? (int)$matched[0][0] : $matched[0][0];
                 }
             }
 

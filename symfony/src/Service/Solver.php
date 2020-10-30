@@ -19,7 +19,7 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(2)->setSubLevel('example');
+        $this->fileReader = $fileReader->setLevel(2)->setSubLevel('5');
         $this->helper = $helper;
     }
 
@@ -32,7 +32,7 @@ class Solver
     {
         $data = $this->fileReader->read(' ', true);
 
-        return $this->solveLevel1($data);
+        return $this->helper->jsonify($this->solveLevel2($data));
     }
 
     public function findPointsInSameRegion($yPoint, $nr, $lines)
@@ -52,6 +52,53 @@ class Solver
         return $points;
     }
 
+    function solveLevel2($data) {
+        [$nr, $lines, $nrOfTasks, $tasks] = $this->helper->readLevel($data);
+
+        $result = [];
+
+        foreach ($tasks as $task) {
+            [$id, $cost] = $task;
+
+            $minute = $this->findStartMinuteForTask($lines, $cost);
+            $result[] = [$id, $minute];
+        }
+
+        $result = array_merge([[$nrOfTasks]], $result);
+
+        $this->helper->writeLevel($result);
+
+        return $result;
+    }
+
+    public function findStartMinuteForTask($lines, $cost)
+    {
+        $c = count($lines);
+
+        $min = 99999999;
+        $result = 0;
+        $sum = 0;
+        $start = 0;
+        $finish = $cost;
+
+        for ($i = 0; $i < $c; $i++) {
+            if ($sum === 0) {
+                $sum = $this->helper->sumNext($lines, 0, $cost);
+            } else {
+                if ($finish < $c) {
+                    $sum -= $lines[$start++];
+                    $sum += $lines[$finish++];
+                }
+            }
+
+            if ($sum < $min) {
+                $min = $sum;
+                $result = $start;
+            }
+        }
+
+        return $result;
+    }
 
     function solveLevel1($data) {
         [$yPoint, $lines] = $this->helper->readLevel($data);

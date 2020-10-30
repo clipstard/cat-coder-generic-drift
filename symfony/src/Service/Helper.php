@@ -65,20 +65,33 @@ class Helper
 
     function readLevel($data) {
         $yPoint = null;
-        $nrOfLines = null;
+        $nrOfTasks = null;
         $lines = [];
+        $tasks = [];
 
-        foreach ($this->matrixToArray($data) as $index => $row) {
+        foreach ($data as $index => $row) {
             if ($index === 0) {
-                $yPoint = (int) $row;
+                if (is_array($row)) {
+                    $yPoint = (int)$row[0];
+                } else {
+                    $yPoint = (int)$row;
+                }
             }
 
-            if ($index > 0) {
-                $lines[] = $row;
+            if ($index > 0 && $index <= $yPoint) {
+                $lines[] = is_array($row) ? $row[0] : $row;
+            }
+
+            if ($index > $yPoint) {
+                if ($index === $yPoint + 1) {
+                        $nrOfTasks =  is_array($row) ? (int) $row[0] : $row;
+                } else {
+                    $tasks[] = $row;
+                }
             }
         }
 
-        return [$yPoint, $lines];
+        return [$yPoint, $lines, $nrOfTasks, $tasks];
     }
 
     function writeLevel($data)
@@ -102,6 +115,16 @@ class Helper
         }
 
         return $items;
+    }
+
+    public function sumNext($lines, $start, $amount)
+    {
+        $sum = 0;
+        for ($i = $start; $i < $start + $amount; $i++ ) {
+            $sum += $lines[$i];
+        }
+
+        return $sum;
     }
 
 }

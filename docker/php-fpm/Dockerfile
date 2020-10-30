@@ -16,7 +16,7 @@ ENV XDEBUG_IDE_KEY ${XDEBUG_IDE_KEY}
 # ------------------------------
 # Install xDebug, if enabled
 # ------------------------------
-ARG INSTALL_XDEBUG=false
+ARG INSTALL_XDEBUG
 RUN if [ ${INSTALL_XDEBUG} = true ]; then \
     # Install the xdebug extension
     pecl install xdebug && \
@@ -146,7 +146,7 @@ USER app
 # ------------------------------
 # Specific user commands
 # ------------------------------
-RUN composer global require hirak/prestissimo
+#RUN composer global require hirak/prestissimo
 
 USER root
 

@@ -114,9 +114,9 @@ class FileReader
 
         $isArray = false;
         $isMatrix = false;
-        if (count($data)) {
+        if (is_array($data) && count($data)) {
             $isArray = true;
-            if (count($data[array_key_first($data)])) {
+            if (is_array($data[array_key_first($data)]) && count($data[array_key_first($data)])) {
                 $isMatrix = true;
             }
         }

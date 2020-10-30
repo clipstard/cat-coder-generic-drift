@@ -10,13 +10,17 @@ class Solver
     /** @var FileReader $fileReader */
     protected $fileReader;
 
+    protected $helper;
+
     public function __construct(
         string $projectDir,
-        FileReader $fileReader
+        FileReader $fileReader,
+        Helper $helper
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(3);
+        $this->fileReader = $fileReader->setLevel(1)->setSubLevel('4');
+        $this->helper = $helper;
     }
 
     /**
@@ -26,18 +30,35 @@ class Solver
      */
     public function solve(...$args)
     {
-        $data = '';
-        $arr = explode(' ', $data);
-        $intValue = [];
-        foreach ($arr as $item) {
-            $intValue[] = (int)$item;
+        $data = $this->fileReader->read(' ', true);
+
+        return $this->solveLevel1($data);
+    }
+
+    public function findPointsInSameRegion($yPoint, $nr, $lines)
+    {
+        $points = [];
+
+        foreach ($lines as $line) {
+            [$x, $y] = $line;
+
+            if ($yPoint > 0 && $y < $yPoint) {
+                $points[] = $line;
+            } elseif ($yPoint < 0 && $y > $yPoint) {
+                $points[] = $line;
+            }
         }
 
-        $c = count($intValue);
+        return $points;
+    }
 
-        $pairs = $this->findPairs($intValue);
-        return $this->jsonify($pairs);
+    function solveLevel1($data) {
+        [$yPoint, $nrOfLines, $lines] = $this->helper->readLevel($data);
 
+        $points = $this->findPointsInSameRegion($yPoint, $nrOfLines, $lines);
+
+        $this->helper->writeLevel($this->helper->matrixToArray($points));
+        return $this->helper->jsonify($points, 100, false);
     }
 
     /**
@@ -61,55 +82,4 @@ class Solver
 
         return $pairs;
     }
-
-    public function jsonify($data, $limit = 100, $withCount = true)
-    {
-        if (is_string($data)) {
-            return $data;
-        }
-
-        $str = '';
-
-        if (is_array($data) && !is_array($data[0])) {
-            $c = count($data);
-            if ($withCount) {
-                $str .= $c . ' ';
-            }
-
-            for ($i = 0; $i < $c; $i++) {
-                $str .= "{$data[$i]} ";
-                if ($i && $i % $limit === 0) {
-                    $str .= "<br />";
-                }
-            }
-        }
-
-        if (is_array($data) && is_array($data[0])) {
-            foreach ($data as $row) {
-                $c = count($row);
-                for ($i = 0; $i < $c; $i++) {
-                    $str .= "{$row[$i]}, ";
-                    if ($i && $i % $limit === 0) {
-                        $str .= "<br />";
-                    }
-                }
-                $str .= '---------------------------------------------------------<br />';
-            }
-        }
-
-        return $str;
-    }
-
-    public function sortByX(&$array)
-    {
-        $c = count($array);
-        for ($i = 0; $i < ($c - 1); $i++) {
-            for ($j = 1; $j < $c; $j++) {
-                if ($array[$i]['x'] > $array[$j]['x']) {
-                    [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
-                }
-            }
-        }
-    }
-
 }

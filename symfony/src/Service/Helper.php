@@ -64,11 +64,12 @@ class Helper
     }
 
     function readLevel($data) {
-        $rowsAsData = 3;
+        $rowsAsData = 4;
         $maxPower = null;
         $maxCost = null;
         $yPoint = null;
         $nrOfTasks = null;
+        $maxConcurrent = null;
         $lines = [];
         $tasks = [];
 
@@ -82,10 +83,15 @@ class Helper
             }
 
             if ($index === 2) {
+                $maxConcurrent = self::e($row);
+            }
+
+            if ($index === 3) {
                 $yPoint = self::e($row);
             }
 
-            if ($index > 2 && $index <= $yPoint + ($rowsAsData - 1)) {
+
+            if ($index > 3 && $index <= $yPoint + ($rowsAsData - 1)) {
                 $lines[] = self::e($row);
             }
 
@@ -98,7 +104,7 @@ class Helper
             }
         }
 
-        return [$maxPower, $maxCost, $yPoint, $lines, $nrOfTasks, $tasks];
+        return [$maxPower, $maxCost, $maxConcurrent, $yPoint, $lines, $nrOfTasks, $tasks];
     }
 
     private static function e($data) {

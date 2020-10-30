@@ -19,7 +19,7 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(2)->setSubLevel('5');
+        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('3');
         $this->helper = $helper;
     }
 
@@ -32,7 +32,24 @@ class Solver
     {
         $data = $this->fileReader->read(' ', true);
 
-        return $this->helper->jsonify($this->solveLevel2($data));
+        return $this->helper->jsonify($this->solveLevel3($data));
+    }
+
+    public function solveLevel3($data)
+    {
+        [$nrOfLines, $lines, $nrOfTasks, $tasks] = $this->helper->readLevel($data);
+        $results = [[$nrOfTasks]];
+
+        foreach ($tasks as $task) {
+            [$id, $power, $start, $end] = $task;
+            $min = $this->findLowerCostId($lines, $start, $end + 1);
+
+            $results[] = [$id, $min, $power];
+        }
+
+        $this->helper->writeLevel($results);
+
+        return $data;
     }
 
     public function findPointsInSameRegion($yPoint, $nr, $lines)
@@ -111,14 +128,19 @@ class Solver
         return $response;
     }
 
-    public function findLowerCostId($lines)
+    public function findLowerCostId($lines, $from = 0, $to = null)
     {
         $min = 999999;
         $solution = null;
-        foreach ($lines as $index => $line) {
-            if ($line < $min) {
-                $min = $line;
-                $solution = $index;
+        $c = count($lines);
+        if (!$to) {
+            $to = $c;
+        }
+
+        for ($i = $from; $i < $to; $i++) {
+            if ($lines[$i] < $min) {
+                $min = $lines[$i];
+                $solution = $i;
             }
         }
 

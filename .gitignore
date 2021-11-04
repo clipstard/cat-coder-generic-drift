@@ -1,9 +1,6 @@
-/public/*
+
 ###> symfony/framework-bundle ###
-/symfony/.env
-/symfony/.env.local
-/symfony/.env.local.php
-/symfony/.env.*.local
+
 /symfony/public/bundles/
 /symfony/var/
 /symfony/vendor/
@@ -36,15 +33,10 @@
 
 
 # Process
-docker-compose.yml
-docker/nginx/symfony.conf
-docker/php-cli/symfony.ini
-docker/php-fpm/symfony.ini
+#docker-compose.yml
+#docker/nginx/symfony.conf
+#docker/php-cli/symfony.ini
+#docker/php-fpm/symfony.ini
 
-symfony/public/import/*
-symfony/public/images/*
-symfony/public/orders/*
 
 /logs
-/symfony/import
-symfony/composer.lock

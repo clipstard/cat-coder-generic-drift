@@ -35,7 +35,7 @@ class FileUploader extends AbstractController
             $file->move($path, $fileName);
 
         } catch (\Exception $e) {
-            return new JsonResponse(['message' => $e->getMessage()]);
+            return new JsonResponse(['errorMessage' => $e->getMessage()]);
         }
 
         $zip = new ZipArchive();
@@ -57,7 +57,7 @@ class FileUploader extends AbstractController
         if ($zip->open($path . $fileName) === TRUE) {
             $zip->extractTo($fullPath);
             $zip->close();
-            $response = 'ok';
+            $response = 'ok shoudl be present';
         } else {
             $response = 'failed';
         }

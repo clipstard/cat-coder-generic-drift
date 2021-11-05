@@ -2,192 +2,43 @@
 
 namespace App\Service;
 
-use App\Entity\Service\Coord;
-use App\Entity\Service\Pair;
-use App\Entity\Service\Point;
-use App\Entity\Service\Table;
+use App\Entity\Player;
 
 class Solver
 {
     /** @var string $projectDir */
     protected $projectDir;
 
-    const R = 6371000.0;
-
     /** @var FileReader $fileReader */
     protected $fileReader;
+    protected $winIncrement = 0;
+    protected $lossDecrement = 0;
 
     public function __construct(
-        string $projectDir,
+        string     $projectDir,
         FileReader $fileReader
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(4)->setSubLevel('5');
+        $this->fileReader = $fileReader->setLevel(4)->setSubLevel('example');
     }
 
     public function solveFirstLevel()
     {
-        $data = $this->fileReader->read(' ');
+        $data = $this->fileReader->read();
 
-        /** @var Coord[] $coords */
-        $coords = $this->readCoords($data);
-        $result = [];
+        /**
+         * @var Player[]
+         */
+        $players = $this->readPlayers($data);
 
-        foreach ($coords as $coord) {
-            $result[] = $this->getCoordsAtTime($coord);
-        }
+//        $players = $this->collapseSamePLayers($players);
+        Player::sortByRating($players);
 
-        $this->fileReader->write($result);
+        $converted = Player::convertOutput($players);
 
-        return $this->jsonify($result, 10, false);
-    }
-
-    public function getCoordsAtTime(Coord $coord)
-    {
-        /** @var Coord[] $flightData */
-        $flightData = $this->fileReader->getFlightData($coord->getFlightId());
-        $timeOffset = $coord->getTime() - $flightData[0]->getTime();
-
-        $c = count($flightData);
-        for ($i = 0; $i < $c; $i++) {
-            if ($flightData[$i]->getTimeOffset() === $timeOffset) {
-                return [
-                    $flightData[$i]->getLat(),
-                    $flightData[$i]->getLong(),
-                    $flightData[$i]->getAlt()
-                ];
-            }
-
-            if ($flightData[$i]->getTimeOffset() > $timeOffset) {
-                $before = $flightData[$i - 1];
-                $after = $flightData[$i];
-                return [
-                    $this->getInterLat($before, $after, $timeOffset),
-                    $this->getInterLong($before, $after, $timeOffset),
-                    $this->getInterAlt($before, $after, $timeOffset),
-                ];
-            }
-        }
-
-        return [0, 0, 0];
-    }
-
-    public function getInterAlt(Coord $coord1,Coord $coord2, $x2)
-    {
-        $x1 = $coord1->getTimeOffset();
-        $x3 = $coord2->getTimeOffset();
-        $y1 = $coord1->getAlt();
-        $y3 = $coord2->getAlt();
-        return (((($x2 - $x1) * ($y3 - $y1)) / ($x3 - $x1)) + $y1);
-    }
-
-    public function getInterLat(Coord $coord1,Coord $coord2, $x2)
-    {
-        $x1 = $coord1->getTimeOffset();
-        $x3 = $coord2->getTimeOffset();
-        $y1 = $coord1->getLat();
-        $y3 = $coord2->getLat();
-        $y2 = ((($x2 - $x1) * ($y3 - $y1)) / ($x3 - $x1)) + $y1;
-        return $y2;
-    }
-
-    public function getInterLong(Coord $coord1,Coord $coord2, $x2)
-    {
-        $x1 = $coord1->getTimeOffset();
-        $x3 = $coord2->getTimeOffset();
-        $y1 = $coord1->getLong();
-        $y3 = $coord2->getLong();
-        $y2 = ((($x2 - $x1) * ($y3 - $y1)) / ($x3 - $x1)) + $y1;
-
-        return $y2;
-    }
-
-
-    public function transform($lat, $long, $alt)
-    {
-        $rLat = ($lat * M_PI / 180);
-        $rLong = ($long * M_PI / 180);
-        $x = (self::R + $alt) * cos($rLat) * cos($rLong);
-        $y = (self::R + $alt) * cos($rLat) * sin($rLong);
-        $z = (self::R + $alt) * sin($rLat);
-
-        return [$x, $y, $z];
-    }
-
-    /**
-     * @param Coord[] $array
-     * @return array
-     */
-    public function distinctFlights($array)
-    {
-        $arr = [];
-        $c = count($array);
-        for ($i = 0; $i < $c - 1; $i++) {
-            $found = true;
-            for ($j = $i + 1; $j < $c; $j++) {
-                if (
-                    $array[$i]->getFrom() === $array[$j]->getFrom() &&
-                    $array[$i]->getTo() === $array[$j]->getTo()
-                ) {
-                    $key = $array[$i]->getFrom() . $array[$i]->getTo();
-                    $found = false;
-                    if (array_key_exists($key, $arr)) {
-                        if ($arr[$key]->getTakeoff() !== $array[$i]->getTakeoff() && $arr[$key]->getId() !== $array[$i]->getId()) {
-                            $arr[$key]->inc();
-                        }
-                    } else {
-                        $arr[$key] = $array[$i]->inc();
-                    }
-                }
-            }
-
-            if ($found) {
-                $key = $array[$i]->getFrom() . $array[$i]->getTo();
-                if (array_key_exists($key, $arr)) {
-                    if ($arr[$key]->getTakeoff() !== $array[$i]->getTakeoff() && $arr[$key]->getId() !== $array[$i]->getId()) {
-                        $arr[$key]->inc();
-                    }
-                } else {
-                    $arr[$key] = $array[$i]->inc();
-                }
-            }
-        }
-
-        return $arr;
-    }
-
-    /**
-     * @param Coord[] $array
-     * @return array
-     */
-    public function distinct2($array)
-    {
-        $arr = [];
-        $times = [];
-        $c = count($array);
-        /** @var Coord $item */
-        foreach ($array as $item) {
-            $key = $item->getFrom() . $item->getTo();
-            if (!array_key_exists($key, $arr)) {
-                $arr[strtoupper($key)] = $item;
-            }
-        }
-
-        foreach ($array as $item) {
-            $key = strtoupper($item->getFrom() . $item->getTo());
-            if (!array_key_exists($key, $times)) {
-                $times[$key] = [];
-            }
-
-            $times[$key][] = $item->getTakeoff();
-        }
-
-        foreach ($times as $key => $time) {
-            $arr[$key]->setCount($this->countUniques($time));
-        }
-
-        return $arr;
+        $this->fileReader->write($converted);
+        return $this->jsonify($converted, 10);
     }
 
     public function countUniques($array)
@@ -217,46 +68,73 @@ class Solver
         return $arr;
     }
 
-    public function getMinMax($array, $direction, $property = 'time')
+    public function readPlayers($data)
     {
-        $property = ucfirst($property);
-
-        $min = 999999.0;
-        $max = -99990.0;
-        $c = count($array);
-        for ($i = 0; $i < $c - 1; $i++) {
-            if ($array[$i]->{'get' . $property}() < $min) {
-                $min = $array[$i]->{'get' . $property}();
-            }
-
-            if ($array[$i]->{'get' . $property}() > $max) {
-                $max = $array[$i]->{'get' . $property}();
-            }
-        }
-
-        return $direction ? $min : $max;
-    }
-
-    public function readCoords($data)
-    {
-        $arr = [];
         $rows = (int)$data[0][0];
-        $c = count($data);
-        $a = 0;
-        for ($i = 1; $i <= $rows; $i++) {
-            $arr[] = new Coord((int)$data[$i][0], (int)$data[$i][1]);
+        unset($data[0]);
+        /**
+         * @var Player[]
+         */
+        $players = [];
+
+        $iterations = 0;
+
+        foreach ($data as $game) {
+            $player1 = new Player((int)$game[0], (int)$game[1]);
+            $player2 = new Player((int)$game[2], (int)$game[3]);
+
+            $player1Index = $this->findPlayer($player1->id, $players);
+            $player2Index = $this->findPlayer($player2->id, $players);
+            if ($player1Index === null) {
+                $player1Index = $player1->id;
+                $players[$player1Index] = $player1;
+            }
+
+            if ($player2Index === null) {
+                $player2Index = $player2->id;
+                $players[$player2Index] = $player2;
+            }
+
+            $players[$player1Index]->score = $player1->score;
+            $players[$player2Index]->score = $player2->score;
+//            $players[$player2Index]->wins += $player2->score > $player1->score ? 1 : 0;
+//            $players[$player1Index]->wins += $player1->score > $player2->score ? 1 : 0;
+
+            $players[$player1Index]->rating = $this->calculateRating($players[$player1Index], $players[$player2Index]);
+            $players[$player2Index]->rating = $this->calculateRating($players[$player2Index], $players[$player1Index]);
         }
 
-        return $arr;
+        return $players;
     }
 
-    public function getItemByIndex($array, $index)
+    public function calculateRating(Player $player1, Player $player2)
     {
-        $a = 0;
+        $K = 32;
+        $player1->ea += $this->getEA($player1->rating, $player2->rating);
+        $SA = $player1->score > $player2->score ? 1 : 0;
 
-        foreach ($array as $item) {
-            if ($a++ === $index) {
-                return $item;
+        return floor($player1->rating + ($K * ($SA - $player1->ea)));
+    }
+
+    public function getEA($ra, $rb)
+    {
+        if ($ra - $rb >= 400) {
+            return 0.9;
+        }
+
+        return 1 / (1 + (10 ^ (($rb - $ra) / 400)));
+    }
+
+    /**
+     * @param $id
+     * @param PLayer[] $players
+     * @return int|null
+     */
+    public function findPlayer($id, array $players): ?int
+    {
+        foreach ($players as $key => $player) {
+            if ($player->id === $id) {
+                return $key;
             }
         }
 
@@ -264,83 +142,31 @@ class Solver
     }
 
     /**
-     * @param Table $table
-     * @param $path
-     * @return mixed
+     * @param Player[] $players
      */
-    public function followPath($table, $path)
+    public function collapseSamePLayers(array $players): array
     {
-        $u = 0;
-        [$color, $starting, $length] = $path;
-        $c = count($path);
-        $steps = 0;
-        for ($i = 3; $i < $c; $i++) {
-            try {
-                $starting = $table->doAction($starting, $color, $path[$i]);
-            } catch (\Exception $exception) {
-                $steps++;
-                break;
-            }
+        $newPlayers = [];
+        $len = count($players);
+        $stats = [];
+        for ($i = 0; $i < $len; $i++) {
+            $id = $players[$i]->id;
+            $win = $players[$i]->wins;
 
-            $steps++;
-        }
-
-        return [$steps, $starting];
-    }
-
-    /**
-     * @param Point[]|array $points
-     * @param $index
-     * @param $color
-     * @return Point|null
-     */
-    private function findNextPointByColor($points, $index, $color): ?Point
-    {
-        $c = count($points);
-        for ($i = $index; $i < $c; $i++) {
-            if ($points[$i]->getColor() === $color) {
-                return $points[$i];
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param $array
-     * @return Pair[]|array
-     */
-    private function findPairs($array)
-    {
-        $pairs = [];
-
-        $c = count($array);
-        $lastPair = null;
-        for ($i = 0; $i < ($c - 1); $i++) {
-            for ($j = ($i + 1); $j < $c; $j++) {
-                $sum = $array[$i] + $array[$j];
-                if ($sum === 1 || $sum === -1) {
-                    $pairs[] = new Pair($array[$i], $array[$j], $i, $j);
+            if (array_key_exists($id, $stats)) {
+                if ($win) {
+                    $stats[$id] += $win;
                 }
+            } else {
+                $stats[$id] = $win;
             }
         }
 
-//        Pair::sortByX($pairs);
-        return $pairs;
-    }
-
-    private function isSorted(&$array)
-    {
-        $c = count($array);
-        for ($i = 0; $i < $c - 1; $i++) {
-            for ($j = $i + 1; $j < $c; $j++) {
-                if ($array[$i] > $array[$j]) {
-                    return false;
-                }
-            }
+        foreach ($stats as $key => $stat) {
+            $newPlayers[] = new Player((int)substr($key, 3), null, $stat);
         }
 
-        return true;
+        return $newPlayers;
     }
 
     public function jsonify($data, $limit = 100, $withCount = false)
@@ -352,7 +178,7 @@ class Solver
         $str = '';
 
 
-        if (is_array($data) && count($data) && !is_array($this->getItemByIndex($data, 0))) {
+        if (count($data) && !is_array($data[array_key_first($data)])) {
             $c = count($data);
             if ($withCount) {
                 $str .= $c . ' ';
@@ -367,10 +193,10 @@ class Solver
             }
         }
 
-        if (is_array($data) && count($data) && is_array($this->getItemByIndex($data, 0))) {
-            foreach ($data as $row) {
+        if (count($data) && is_array($data[array_key_first($data)])) {
+            foreach ($data as $key => $row) {
                 $c = count($row);
-                $keys = array_keys($data);
+                $keys = array_keys($row);
                 for ($i = 0; $i < $c; $i++) {
                     $str .= "{$row[$keys[$i]]}, ";
                     if ($i && $i % $limit === 0) {

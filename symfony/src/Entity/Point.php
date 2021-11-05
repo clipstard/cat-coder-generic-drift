@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Entity\Service;
+namespace App\Entity;
 
 class Point
 {

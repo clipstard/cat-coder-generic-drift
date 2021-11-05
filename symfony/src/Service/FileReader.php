@@ -2,8 +2,6 @@
 
 namespace App\Service;
 
-use App\Entity\Service\Coord;
-
 class FileReader
 {
 
@@ -91,52 +89,12 @@ class FileReader
             foreach ($explodedRow as $item) {
                 $matched = null;
                 preg_match_all("/[^(\r|\n|\r\n)]+/", $item, $matched);
-                if (count($matched) && count($matched[0])) {
+                if (count($matched) && count($matched[array_key_first($matched)])) {
                     $replacedRow[] = $matched[0][0];
                 }
             }
 
             $arr[] = $replacedRow;
-        }
-
-        fclose($fp);
-
-        return $arr;
-    }
-
-    public function getFlightData($flightId)
-    {
-        $dir = $this->projectDir . self::BASE_BATH . $this->getLevel() . '/in/';
-        $fullPath = $dir . $flightId . '.csv';
-        $fp = fopen($fullPath, 'rb');
-        $arr = [];
-
-        $i = 0;
-        $from = null;
-        $to = null;
-        $startpoint = null;
-        $length = null;
-
-        while ($row = fgetcsv($fp, 256, ',')) {
-            if ($i === 0) {
-                $from = $row[0];
-            } elseif ($i === 1) {
-                $to = $row[0];
-            } elseif ($i === 2) {
-                $startpoint = $row[0];
-            } elseif ($i === 3) {
-                $length = $row[0];
-            } else {
-                $arr[] = (new Coord(null, null))
-                    ->setTimeOffset($row[0])
-                    ->setFrom($from)
-                    ->setTo($to)
-                    ->setTime($startpoint)
-                    ->setLat($row[1])
-                    ->setLong($row[2])
-                    ->setAlt($row[3]);
-            }
-            $i++;
         }
 
         fclose($fp);
@@ -160,7 +118,7 @@ class FileReader
         $isMatrix = false;
         if (is_array($data) && count($data)) {
             $isArray = true;
-            if (isset($data[0]) && is_array($data[0]) && count($data[0])) {
+            if (isset($data[array_key_first($data)]) && is_array($data[array_key_first($data)]) && count($data[array_key_first($data)])) {
                 $isMatrix = true;
             }
         }
@@ -168,7 +126,7 @@ class FileReader
         try {
             if ($isMatrix) {
                 foreach ($data as $row) {
-                    if (is_float($row[0])){
+                    if (is_float($row[array_key_first($row)])){
                         $str = '';
                         foreach ($row as $item) {
                             $str .= sprintf('%.9f', $item) . $delimiter;
@@ -181,15 +139,14 @@ class FileReader
                 }
             } elseif ($isArray) {
                 $str = '';
-                if (is_float($data[0])){
+                if (is_float($data[array_key_first($data)])) {
                     foreach ($data as $item) {
                         $str .= sprintf('%.9f', $item) . $delimiter;
-                }
+                    }
                     fwrite($fp, $str . "\n");
                 } else {
                     fwrite($fp, implode($delimiter, $data). "\n");
                 }
-
 
             } else {
                 fwrite($fp, $data . "\n");
@@ -197,6 +154,7 @@ class FileReader
 
             fclose($fp);
         } catch (\Exception $exception) {
+            echo $exception->getMessage();
             return false;
         }
 

@@ -1,92 +1,10 @@
-30 10
-90 10
-2 560 3 594
-1 125 7 44
-6 767 9 971
-6 280 7 237
-1 803 6 660
-4 202 6 109
-0 329 5 223
-6 721 9 966
-2 411 6 131
-2 898 7 349
-7 787 9 10
-1 578 9 738
-2 501 4 467
-3 178 6 867
-3 994 7 69
-0 342 1 925
-2 419 5 560
-1 200 6 42
-0 783 4 571
-0 475 2 690
-5 614 6 117
-1 944 4 210
-4 642 7 584
-2 805 8 865
-5 158 7 53
-1 648 6 510
-4 706 5 744
-8 234 9 288
-1 887 4 889
-4 547 5 117
-4 319 9 140
-3 818 5 998
-3 63 8 786
-0 710 9 910
-8 141 9 306
-3 910 7 355
-1 422 7 346
-3 623 7 209
-2 351 4 915
-0 910 2 991
-1 721 7 452
-4 616 7 746
-2 12 6 358
-0 665 1 89
-1 853 4 88
-0 58 4 779
-1 827 5 834
-0 694 6 991
-3 319 7 278
-3 60 7 26
-2 798 9 864
-3 856 7 542
-0 348 1 597
-0 189 5 47
-2 128 7 15
-1 495 4 319
-6 859 9 863
-1 969 8 192
-0 625 6 992
-0 214 8 366
-5 150 8 954
-2 856 6 976
-4 945 6 950
-8 572 9 851
-2 866 9 889
-0 27 2 0
-6 235 8 535
-2 969 3 984
-4 261 9 53
-3 85 5 848
-0 202 1 514
-0 239 4 74
-0 649 6 1000
-0 507 6 107
-5 624 7 241
-1 441 2 356
-0 355 8 650
-1 134 5 702
-0 764 7 286
-2 405 4 397
-2 911 6 962
-1 97 9 55
-0 463 5 891
-3 524 9 529
-0 578 8 826
-7 963 9 987
-3 335 4 218
-2 434 5 423
-6 951 8 953
-6 279 9 53
+9
+start print something var cucumber true if cucumber set cucumber tasty end else set cucumber nottasty end if cucumber print supertasty end else print something end end start var value true if true if false print 1 if value set value false print value end else print 1 end end else print 1 end end else print 1 end print value if value set value false end else set value true print value if value print value end else print 1 end end end start var x basmo var y x var z y set y z print x print y print z end start if true print a if true print b if false print c return c end else print d end print e end else print f end print g return g end else print h end print k end start print variable var variable world print variable print world set variable false print variable if true set variable true var second test end else set variable false end if variable set variable second print variable print second set variable 5 print variable return variable end else print world end print hello print world if true return true end else end end start var lwjf124 wtg125 print lwjf124 end start var fxnk126 bo127 print fxnk126 end start print mdl128 end start print qe129 end start var zg130 oki131 end start var npxe132 rrf133 end start print ss134 end start var h135 w136 print h135 end start var j137 hbd138 print j137 end start print mu139 end start end start end start print k142 end start var bnka143 wjv144 print bnka143 end start print zost145 end start end start var xsyu147 r148 end start var n149 l150 end start print m151 end start var lo152 vnd153 end start var nc154 j155 print nc154 end start end start end start var apw158 had159 print apw158 end start var ncza160 osl161 end start var mztm162 cxw163 print mztm162 end start end start var hu165 seod166 print hu165 end start var pcqx167 m168 end start var klpp169 v170 end start end start var iv172 nyi173 print iv172 end start end start print kbj175 end start end start var ikju177 cfyd178 end start var mfv179 nq180 print mfv179 end start var mi181 tf182 end start print k183 end start var twv184 ewfg185 print twv184 end start var iz186 aq187 print iz186 end start var giv188 wbs189 print giv188 end start end start print qb191 end start print t192 end start var lj193 tgk194 print lj193 end start var k195 v196 end start var fcv197 jb198 print fcv197 end start var qu199 a200 print qu199 end start var xiel201 v202 print xiel201 end start print psyq203 end start var sgpd204 wsj205 end start var httc206 evne207 print httc206 end start var oi208 oed209 print oi208 end start print f210 end start var tgh211 ort212 end start print d213 end start var em214 m215 print em214 end start print wwd216 end start var dq217 pd218 end start var dnem219 zqs220 print dnem219 end start var vcko221 sg222 end start print bmy223 end start var t224 h225 print t224 end start end start print wx227 end start var mfs228 zrf229 end start end start var ewas231 rx232 end start print oogl233 end start print ntt234 end start print fhq235 end start print o236 end start print ejol237 end start print jpx238 end start end start var p240 yc241 print p240 end start var scwq242 snuj243 print scwq242 end start print jyuh244 end start var a245 sbj246 end start end start print uvuk248 end start var kthm249 hpe250 print kthm249 end start print n251 end start var nece252 ajte253 print nece252 end start print gxam254 end start end start end start print pq257 end start var scze258 xys259 print scze258 end start end start var m261 hdrp262 end start print wnv263 end start var qked264 sj265 print qked264 end start var vr266 h267 print vr266 end start end start var r269 rjtc270 end start var pv271 ldh272 end start var f273 brhp274 end start var o275 guq276 print o275 end start end start print npy278 end start var eey279 jt280 end start var btq281 qd282 end start var bt283 tpx284 end start print bh285 end start print yq286 end start var mq287 da288 print mq287 end start print cv289 end start var l290 lxl291 print l290 end start end start print lbcb293 end start var bzx294 lbd295 print bzx294 end start var z296 urd297 print z296 end start var owbe298 n299 print owbe298 end start end start end start var jeuj302 w303 print jeuj302 end start end start var niwp305 sxp306 print niwp305 end start var gmy307 s308 print gmy307 end start var ak309 h310 print ak309 end start print jv311 end start end start var ugei313 cyt314 end start print zwn315 end start var beww316 prt317 end start var
+xzh318 c319 end start end start var cxnx321 uq322 end start print sbpt323 end start print si324 end start end start var yk326 j327 end start var xhn328 fqpd329 print xhn328 end start var wn330 k331 print wn330 end start print smm332 end start print ue333 end start var oq334 hrfr335 print oq334 end start var jk336 cc337 end start var v338 upw339 end start var kin340 ozu341 print kin340 end start print mjw342 end start print juw343 end start end start var j345 ln346 print j345 end start var eady347 kfm348 print eady347 end start var az349 c350 print az349 end start var b351 hw352 print b351 end start var by353 uamb354 end start var hps355 mhx356 print hps355 end start print phny357 end start var jr358 jkq359 print jr358 end start var uty360 nx361 end start var ti362 a363 print ti362 end start var lcg364 cvh365 print lcg364 end start print bk366 end start var tmp367 l368 print tmp367 end start print evdq369 end start end start print pej371 end start print kxk372 end start var nyq373 cevw374 end start print kbpi375 end start var yg376 akmx377 print yg376 end start var qbl378 etum379 print qbl378 end start var jyg380 kf381 end start end start print o383 end start end start var l385 fic386 print l385 end start var ydze387 nlv388 end start print t389 end
+start var ro390 g391 print ro390 end start var jy392 p393 print jy392 end start var c394 gc395 print c394 end start print wk396 end start var klfl397 jeev398 print klfl397 end start var skg399 rtoo400 print skg399 end start print d401 end start print sxz402 end start var q403 o404 print q403 end start print vf405 end start var k406 uai407 print k406 end start var mg408 st409 end start print jljf410 end start var cun411 o412 print cun411 end start end start print huo414 end start var pw415 fdad416 end start var fck417 r418 print fck417 end start var z419 il420 print z419 end start print q421 end start var xmk422 pb423 end start var dmd424 xh425 end start end start end start print i428 end start end start var j430 nkje431 print j430 end start print wv432 end start var m433 wbt434 end start var iruq435 qbu436 end start print m437 end start var blx438 n439 print blx438 end start print ekmh440 end start print anpo441 end start var uf442 o443 print uf442 end start print c444 end start var lsup445 lv446 print lsup445 end start var
+cdjl447 m448 print cdjl447 end start end start var nbw450 uk451 end start print vmbs452 end start var cwnj453 lzc454 print cwnj453 end start end start print n456 end start end start end start var kesm459 w460 end start var sph461 cbzi462 print sph461 end start var tacq463 wnx464 print tacq463 end start var y465 wb466 print y465 end
+start end start print sb468 end start print
+ta469 end start print qtfl470 end start var
+vd471 wqqc472 print vd471 end start var egmz473 x474 end start var ub475 tmlw476 print
+ub475 end start var h477 pjil478
+print h477 end

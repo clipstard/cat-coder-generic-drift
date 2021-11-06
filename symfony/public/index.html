@@ -1,57 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<html>
 
-<div>
-    <input type="number" id="num1" />
-</div>
-<div>
-    <input type="number" id="num2" />
-</div>
-<div>
-    <button type="button" id="submit">Calcul</button>
-</div>
-<div>
-    <h1 id="result"></h1>
-</div>
+<head>
+    <title>Read Text File</title>
+</head>
+
+<body>
+<input type="file" name="inputfile"
+       id="inputfile">
+<br>
+
+<pre id="output"></pre>
+
+<script type="text/javascript">
+    document.getElementById('inputfile')
+        .addEventListener('change', function() {
+
+            var fr=new FileReader();
+            fr.onload=function(){
+                document.getElementById('output')
+                    .textContent=fr.result;
+            }
+
+            fr.readAsText(this.files[0]);
+        })
+</script>
 </body>
 
-<script>
-    function elem(id) {
-        return document.getElementById(id);
-    }
-
-    function calculate() {
-        const num1 = parseInt(elem('num1').value);
-        const num2 = parseInt(elem('num2').value);
-        let result;
-        if (num1 === num2) {
-            result = 0.5;
-        }
-        if (num1 - 400 >= num2) {
-            result = 0.9;
-        }
-
-        if (result) {
-            return result;
-        }
-        console.log({
-            num1,
-            num2,
-            result,
-            willReturn: (1 / (1 + (10 * ((num2 - num1) / 400)))),
-            num2minusnum1: (num2 - num1),
-        })
-
-        return (1 / (1 + (10 ^ ((num2 - num1) / 400))));
-    }
-
-    elem('submit').onclick = () => {
-        elem('result').innerHTML = '' + calculate();
-    }
-</script>
 </html>

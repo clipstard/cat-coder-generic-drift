@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Service\Solver;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
 class HomeController extends AbstractController
 {
@@ -16,6 +17,7 @@ class HomeController extends AbstractController
         $this->solver = $solver;
     }
 
+    #[Route('/', name: 'home')]
     public function __invoke()
     {
 

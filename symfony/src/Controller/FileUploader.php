@@ -7,6 +7,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 use ZipArchive;
 
 class FileUploader extends AbstractController
@@ -21,7 +23,8 @@ class FileUploader extends AbstractController
         $this->projectDir = $projectDir;
     }
 
-    public function __invoke(Request $request)
+    #[Route('/upload/file', name: 'file_uploaded_handler')]
+    public function __invoke(Request $request): Response
     {
         /** @var UploadedFile $file */
         $file = $request->files->get('file');
@@ -44,7 +47,7 @@ class FileUploader extends AbstractController
         preg_match_all('/[0-9]+/', $fileName, $match);
         $level = 0;
 
-        if (count($match) && count($match[0])) {
+        if (!empty($match[0])) {
             $level = $match[0][0];
         }
 

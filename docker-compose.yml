@@ -1,26 +1,5 @@
 version: '3'
 services:
-    db:
-        container_name: c2-db
-        build:
-
-            context: ./docker/mariadb
-        restart: unless-stopped
-        environment:
-            MYSQL_ROOT_PASSWORD: admin
-            MYSQL_DATABASE: admin
-            MYSQL_USER: admin
-            MYSQL_PASSWORD: admin
-            MARIADB_ROOT_HOST: '%'
-            MYSQL_ROOT_HOST: '%'
-        networks:
-            sia-network:
-                ipv4_address: 172.20.0.6
-        ports:
-            - "3306:3306"
-        expose:
-            - 3306
-
     php-fpm:
         container_name: c2-php
         build:
@@ -41,8 +20,6 @@ services:
         restart: unless-stopped
         expose:
             - 9001
-        depends_on:
-            - db
 
     nginx:
         container_name: c2-nginx

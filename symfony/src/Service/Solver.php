@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Player;
+use App\Entity\Point;
 
 class Solver
 {
@@ -18,11 +19,14 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('7');
+        $this->fileReader = $fileReader->setLevel(4)->setSubLevel('example');
     }
 
-    private array $countedPositions = [];
-    private array $ghostsPositions = [];
+    private array $coinMap = [[]];
+    private array $map = [];
+    private array $movementsMap = [];
+    private int $maxMovements = 0;
+    private ?Point $root = null;
 
     public function solveFirstLevel()
     {
@@ -45,121 +49,134 @@ class Solver
         }
 
         $data = array_values($data);
-        [$startX, $startY, $_, $movements] = $data;
-        unset($data[0],$data[1],$data[2],$data[3]);
-        $data = array_values($data);
-        $nrOfGhosts = (int) $data[0];
-        $ghostsMovements = [];
-        unset($data[0]);
+        [$startX, $startY, $maxMovements] = $data;
 
-        for ($i = 0; $i < $nrOfGhosts; $i++) {
-            $data = array_values($data);
-            [$ghostStartX, $ghostStartY, $_, $ghostMovements] = $data;
-            $this->ghostsPositions[$i] = [(int) $ghostStartX - 1, (int) $ghostStartY - 1];
-            $ghostsMovements[$i] = str_split($ghostMovements);
-
-            unset($data[0], $data[1], $data[2], $data[3]);
-        }
-
-        $movements = str_split($movements);
-
+        $this->maxMovements = (int) $maxMovements;
         $currentX = (int) $startX - 1;
         $currentY = (int) $startY - 1;
+        $this->root = new Point($currentX, $currentY);
+        $this->root->isRoot = true;
+        $countCoins = 0;
+        $this->map = $map;
 
-        $countedPositions = [];
-
-        dump($movements);
-        dump($map);
-        dump($map[$currentX][$currentY]);
-        dump(['star' => [$currentX, $currentY, $count]]);
-
-        foreach ($movements as $index => $movement) {
-            $this->moveGhosts($index, $ghostsMovements);
-
-            switch ($movement) {
-                case 'U':
-                    $currentX -= 1;  break;
-                case 'D':
-                    $currentX += 1; break;
-                case 'L':
-                    $currentY -= 1; break;
-                case 'R':
-                    $currentY += 1; break;
-                default:
-                    break;
+        foreach ($map as $x => $row) {
+            foreach ($row as $y => $item) {
+                if ($item === 'C') {
+                    $this->coinMap[$x][$y] = 'C';
+                    $countCoins++;
+                }
             }
-
-            dump([
-                'x y' => [$currentY, $currentX],
-                'movement' => $movement,
-                'movementIndex' => $index,
-                'currentScore' => $count,
-                'currentLeter' => $map[$currentX][$currentY],
-                'ghostCurrentPositions' => $this->ghostsPositions,
-            ]);
-
-            if ($this->dies($map, $currentX, $currentY)) {
-                $isAlive = false;
-                break;
-            }
-
-            foreach ($countedPositions as $countedPosition) {
-                [$x, $y] = $countedPosition;
-                if ($currentX === $x && $currentY === $y) continue 2;
-            }
-
-            $countedPositions[] = [$currentX, $currentY];
-            $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
-            dump(['newScore' => $count]);
         }
-//die;
-        $res = [$count, $isAlive ? 'YES' : 'NO'];
+
+        /*
+         *                 if (isset($this->coinMap[$x][$y])) {
+                    dump([
+                        'position' => 'this',
+                        'x' => $x,
+                        'y' => $y,
+                    ]);
+                } elseif (isset($this->coinMap[$x][$y + 1])) { // check right
+                    dump([
+                        'position' => 'right',
+                        'x' => $x, 'y' => $y + 1,
+                    ]);
+                } elseif (isset($this->coinMap[$x][$y - 1])) { // check left
+                    dump([
+                        'position' => 'left',
+                        'x' => $x, 'y' => $y - 1,
+                    ]);
+                } elseif (isset($this->coinMap[$x + 1][$y])) { // check bottom
+                    dump([
+                        'position' => 'top',
+                        'x' => $x + 1, 'y' => $y,
+                    ]);
+                } elseif (isset($this->coinMap[$x - 1][$y])) { // check top
+                    dump([
+                        'position' => 'bottom',
+                        'x' => $x - 1, 'y' => $y,
+                    ]);
+                }
+         */
+        $nbPoints = 0;
+        $this->addNextPoint($currentY, $currentX, $this->root);
+
+        $point = $this->root;
+        $path = '';
+        $pointsCounted = 0;
+        while ($point !== null) {
+            $path .= $point->getPreviousMovement();
+            if (!$point->collected) {
+                $pointsCounted++;
+            }
+
+            $point->collected = true;
+            $point = $point->getPrevious();
+        }
+
+        $str = '';
+        foreach ($this->map as $row) {
+            $str .= implode('', $row) . "\n";
+        }
+
+        $res = [$count];
         $this->fileReader->write($res);
 
         return $this->jsonify($res, 10);
     }
 
-    public function moveGhosts($moveIndex, array $ghostsMovements): void
+    public function addNextPoint($x, $y, Point $point)
     {
-        foreach ($ghostsMovements as $ghostIndex => $movements) {
-            $movement = $movements[$moveIndex];
-            [$currentX, $currentY] = $this->ghostsPositions[$ghostIndex];
-            switch ($movement) {
-                case 'U':
-                    $currentX -= 1;  break;
-                case 'D':
-                    $currentX += 1; break;
-                case 'L':
-                    $currentY -= 1; break;
-                case 'R':
-                    $currentY += 1; break;
-                default:
-                    break;
-            }
+        $leftX = $x - 1;
+        $rightX = $x + 1;
+        $topX = $x;
+        $bottomX = $x;
+        $leftY = $y;
+        $rightY = $y;
+        $topY = $y - 1;
+        $bottomY = $y + 1;
 
-            $this->ghostsPositions[$ghostIndex] = [(int) $currentX, (int) $currentY];
+        $left = @$this->coinMap[$leftY][$leftX];
+        $right = @$this->coinMap[$rightY][$rightX];
+        $top = @$this->coinMap[$topY][$topX];
+        $bottom = @$this->coinMap[$bottomY][$bottomX];
+        unset($this->map[$y][$x]);
+        $str = '';
+        foreach ($this->map as $row) {
+            $str .= implode('', $row) . "\n";
+        }
+
+        if ($left && !$point->isInTheTree($leftX, $leftY)) {
+            $point->setLeft(new Point($leftX, $leftY));
+            $this->addNextPoint($leftX, $leftY, $point->left);
+        }
+
+        if ($right && !$point->isInTheTree($rightX, $rightY)) {
+            $point->setRight(new Point($rightX, $rightY));
+            $this->addNextPoint($rightX, $rightY, $point->right);
+        }
+
+        if ($top && !$point->isInTheTree($topX, $topY)) {
+            $point->setTop(new Point($topX, $topY));
+            $this->addNextPoint($topX, $topY, $point->top);
+        }
+
+        if ($bottom && !$point->isInTheTree($bottomX, $bottomY)) {
+            $point->setBottom(new Point($bottomX, $bottomY));
+            $this->addNextPoint($bottomX, $bottomY, $point->bottom);
         }
     }
 
-    public function dies(array $map, $posX, $posY): bool
+    function branchCompleted(Point $point): bool
     {
-        if ($map[$posX][$posY] === 'W') {
-            return true;
-        }
+        $current = $this->root;
 
-        foreach ($this->ghostsPositions as $ghostsPosition) {
-            [$ghostX, $ghostY] = $ghostsPosition;
-            if ($posX === $ghostX && $posY === $ghostY) {
+        while ($current !== null) {
+            if ($current->eq($point)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    public function checkPosition(array $map, $posX, $posY): bool
-    {
-        return $map[$posX][$posY] === 'C';
     }
 
     function array_flatten($array): array

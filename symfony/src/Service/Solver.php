@@ -18,8 +18,11 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(2)->setSubLevel('2');
+        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('7');
     }
+
+    private array $countedPositions = [];
+    private array $ghostsPositions = [];
 
     public function solveFirstLevel()
     {
@@ -29,6 +32,7 @@ class Solver
         unset($data[0]);
 
         $count = 0;
+        $isAlive = true;
 
         $index = 0;
         $map = [];
@@ -40,35 +44,65 @@ class Solver
             unset($data[$rowNum]);
         }
 
-        [$startX, $startY, $nrMovements, $movements] = array_values($data);
+        $data = array_values($data);
+        [$startX, $startY, $_, $movements] = $data;
+        unset($data[0],$data[1],$data[2],$data[3]);
+        $data = array_values($data);
+        $nrOfGhosts = (int) $data[0];
+        $ghostsMovements = [];
+        unset($data[0]);
+
+        for ($i = 0; $i < $nrOfGhosts; $i++) {
+            $data = array_values($data);
+            [$ghostStartX, $ghostStartY, $_, $ghostMovements] = $data;
+            $this->ghostsPositions[$i] = [(int) $ghostStartX - 1, (int) $ghostStartY - 1];
+            $ghostsMovements[$i] = str_split($ghostMovements);
+
+            unset($data[0], $data[1], $data[2], $data[3]);
+        }
+
         $movements = str_split($movements);
 
         $currentX = (int) $startX - 1;
         $currentY = (int) $startY - 1;
 
-        $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
-        $countedPositions = [[$currentX, $currentY]];
+        $countedPositions = [];
 
         dump($movements);
         dump($map);
         dump($map[$currentX][$currentY]);
         dump(['star' => [$currentX, $currentY, $count]]);
-        foreach ($movements as $movement) {
+
+        foreach ($movements as $index => $movement) {
+            $this->moveGhosts($index, $ghostsMovements);
+
             switch ($movement) {
-                case 'U': $currentX -= 1;  break;
-                case 'D': $currentX += 1; break;
-                case 'L': $currentY -= 1; break;
-                case 'R': $currentY += 1; break;
+                case 'U':
+                    $currentX -= 1;  break;
+                case 'D':
+                    $currentX += 1; break;
+                case 'L':
+                    $currentY -= 1; break;
+                case 'R':
+                    $currentY += 1; break;
                 default:
                     break;
             }
 
             dump([
-                'x y' => [$currentX, $currentY],
+                'x y' => [$currentY, $currentX],
                 'movement' => $movement,
+                'movementIndex' => $index,
                 'currentScore' => $count,
                 'currentLeter' => $map[$currentX][$currentY],
+                'ghostCurrentPositions' => $this->ghostsPositions,
             ]);
+
+            if ($this->dies($map, $currentX, $currentY)) {
+                $isAlive = false;
+                break;
+            }
+
             foreach ($countedPositions as $countedPosition) {
                 [$x, $y] = $countedPosition;
                 if ($currentX === $x && $currentY === $y) continue 2;
@@ -78,104 +112,54 @@ class Solver
             $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
             dump(['newScore' => $count]);
         }
+//die;
+        $res = [$count, $isAlive ? 'YES' : 'NO'];
+        $this->fileReader->write($res);
 
-        $this->fileReader->write($count);
+        return $this->jsonify($res, 10);
+    }
 
-        return $this->jsonify($count, 10);
+    public function moveGhosts($moveIndex, array $ghostsMovements): void
+    {
+        foreach ($ghostsMovements as $ghostIndex => $movements) {
+            $movement = $movements[$moveIndex];
+            [$currentX, $currentY] = $this->ghostsPositions[$ghostIndex];
+            switch ($movement) {
+                case 'U':
+                    $currentX -= 1;  break;
+                case 'D':
+                    $currentX += 1; break;
+                case 'L':
+                    $currentY -= 1; break;
+                case 'R':
+                    $currentY += 1; break;
+                default:
+                    break;
+            }
+
+            $this->ghostsPositions[$ghostIndex] = [(int) $currentX, (int) $currentY];
+        }
+    }
+
+    public function dies(array $map, $posX, $posY): bool
+    {
+        if ($map[$posX][$posY] === 'W') {
+            return true;
+        }
+
+        foreach ($this->ghostsPositions as $ghostsPosition) {
+            [$ghostX, $ghostY] = $ghostsPosition;
+            if ($posX === $ghostX && $posY === $ghostY) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function checkPosition(array $map, $posX, $posY): bool
     {
         return $map[$posX][$posY] === 'C';
-    }
-
-    public function followTokens($data)
-    {
-        $str = '';
-
-        $canAdd = false;
-        $skipPoins = 0;
-        $die = false;
-        $ifLevel = 0;
-
-        foreach ($data as $key => $item) {
-            if ($skipPoins-- > 0) {
-                continue;
-            };
-
-
-            if ($canAdd) {
-                $var = $this->findVariableByName($this->variables, ['name' => $item]);
-                if ($var !== null) {
-                    $str .= $var['value'];
-                } else {
-                    $str .= $item;
-                }
-
-                $canAdd = false;
-                continue;
-            }
-
-            if ($item === 'var') {
-                $var = $this->findVariableByName($this->variables, ['name' => $data[$key + 1]]);
-                if ($var !== null) {
-                    return ['ERROR', true];
-                }
-
-                $anotherVar = $this->findVariableByName($this->variables, ['name' => $data[$key + 2]]);
-                if ($anotherVar !== null) {
-                    $this->variables[] = ['name' => $data[$key + 1], 'type' => $anotherVar['type'], 'value' => $anotherVar['value']];
-                } else {
-                    $this->variables[] = ['name' => $data[$key + 1], 'type' => $this->getType($data[$key + 2]), 'value' => $data[$key + 2]];
-                }
-
-                $skipPoins = 2;
-                continue;
-            }
-
-            if ($item === 'set') {
-                $var = $this->findVariableByName($this->variables, ['name' => $data[$key + 1]]);
-                $varIndex = $this->findVariableIndexByName($this->variables, ['name' => $data[$key + 1]]);
-                if ($var !== null) {
-                    $anotherVar = $this->findVariableByName($this->variables, ['name' => $data[$key + 2]]);
-                    if ($anotherVar !== null) {
-                        $this->variables[$varIndex]['value'] = $anotherVar['value'];
-                        $this->variables[$varIndex]['type'] = $this->getType($anotherVar['value']);
-                    } else {
-                        $this->variables[$varIndex]['value'] = $data[$key + 2];
-                        $this->variables[$varIndex]['type'] = $this->getType($data[$key + 2]);
-                    }
-                } else {
-                    return ['ERROR', true];
-                }
-
-                $skipPoins = 2;
-                continue;
-            }
-
-            if ($item === 'if') {
-                $response = $this->handleConditional($key, $data);
-                $skipPoins = $response[0];
-                $str .= $response[1];
-                $isReturn = $response[2];
-
-                if ($isReturn) {
-                    return [$str];
-                }
-
-                return [$str . $this->followTokens(array_slice($data, $key + $skipPoins + 1))[0], false];
-            }
-
-            if (in_array($item, $this->preservedTokens)) {
-                $canAdd = true;
-            }
-
-            if ($item === 'return') {
-                return [$str, true];
-            }
-        }
-
-        return [$str, false];
     }
 
     function array_flatten($array): array

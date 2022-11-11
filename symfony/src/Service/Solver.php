@@ -7,13 +7,10 @@ use App\Entity\Player;
 class Solver
 {
     /** @var string $projectDir */
-    protected $projectDir;
+    protected string $projectDir;
 
     /** @var FileReader $fileReader */
-    protected $fileReader;
-    protected $preservedTokens = ['print'];
-    protected $conditional = ['if', 'else'];
-    protected $variables = [];
+    protected FileReader $fileReader;
 
     public function __construct(
         string     $projectDir,
@@ -21,41 +18,75 @@ class Solver
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('example');
+        $this->fileReader = $fileReader->setLevel(2)->setSubLevel('2');
     }
 
     public function solveFirstLevel()
     {
         $data = $this->fileReader->read();
         $data = $this->array_flatten($data);
+        $gridSize = (int) $data[0];
         unset($data[0]);
-        $functions = $this->splitFunctions($data);
 
-        $result = [];
-        foreach ($functions as $key => $function) {
-            $this->variables = [];
-            $result[] = [$this->followTokens($function)[0]];
+        $count = 0;
+
+        $index = 0;
+        $map = [];
+        foreach ($data as $rowNum => $row) {
+            if ($index++ >= $gridSize) break;
+
+            $items = str_split($row);
+            $map[] = $items;
+            unset($data[$rowNum]);
         }
 
-//        die;
+        [$startX, $startY, $nrMovements, $movements] = array_values($data);
+        $movements = str_split($movements);
 
-        $filtered = [];
-        foreach ($result as $item) {
-//            if (str_contains($item[0], 'ERROR')) {
-//                $filtered[] = ['ERROR'];
-//                continue;
-//            }
+        $currentX = (int) $startX - 1;
+        $currentY = (int) $startY - 1;
 
-            if (trim($item[0]) === '') {
-                continue;
+        $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
+        $countedPositions = [[$currentX, $currentY]];
+
+        dump($movements);
+        dump($map);
+        dump($map[$currentX][$currentY]);
+        dump(['star' => [$currentX, $currentY, $count]]);
+        foreach ($movements as $movement) {
+            switch ($movement) {
+                case 'U': $currentX -= 1;  break;
+                case 'D': $currentX += 1; break;
+                case 'L': $currentY -= 1; break;
+                case 'R': $currentY += 1; break;
+                default:
+                    break;
             }
 
-            $filtered[] = $item;
+            dump([
+                'x y' => [$currentX, $currentY],
+                'movement' => $movement,
+                'currentScore' => $count,
+                'currentLeter' => $map[$currentX][$currentY],
+            ]);
+            foreach ($countedPositions as $countedPosition) {
+                [$x, $y] = $countedPosition;
+                if ($currentX === $x && $currentY === $y) continue 2;
+            }
+
+            $countedPositions[] = [$currentX, $currentY];
+            $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
+            dump(['newScore' => $count]);
         }
 
-        $this->fileReader->write($filtered);
+        $this->fileReader->write($count);
 
-        return $this->jsonify($filtered, 10);
+        return $this->jsonify($count, 10);
+    }
+
+    public function checkPosition(array $map, $posX, $posY): bool
+    {
+        return $map[$posX][$posY] === 'C';
     }
 
     public function followTokens($data)
@@ -147,161 +178,12 @@ class Solver
         return [$str, false];
     }
 
-    public function splitFunctions($data)
-    {
-        $arr = [];
-        $tmp = [];
-        $isIf = 0;
-        $isElse = 0;
-
-        foreach ($data as $item) {
-            if ($item === 'if') {
-                $isIf++;
-            }
-
-            if ($item === 'else') {
-                $isElse++;
-            }
-
-            if ($item === 'start') continue;
-            if ($item === 'end' && $isIf > 0) {
-                $tmp[] = $item;
-                $isIf--;
-                continue;
-            }
-
-            if ($item === 'end' && $isElse > 0) {
-                $tmp[] = $item;
-                $isElse--;
-                continue;
-            }
-
-            if ($item === 'end' && $isElse === 0 && $isIf === 0) {
-                $arr[] = $tmp;
-                $tmp = [];
-            } else {
-                $tmp[] = $item;
-            }
-        }
-
-        return $arr;
-    }
-
-    /**
-     * @param int $start
-     * @param $data
-     */
-    function handleConditional(int $start, $data)
-    {
-        $isEndif = false;
-        $isEndElse = false;
-        $statement = false;
-        $arr = [];
-        $count = 1;
-
-        $items = array_slice($data, $start + 1);
-
-        dump($items);
-        if ($items[0] !== 'false' && $items[0] !== 'true') {
-            $var = $this->findVariableByNameAndType($this->variables, ['name' => $items[0], 'type' => 'boolean']);
-            if ($var === null) {
-                return [0, 'ERROR', true];
-            } else {
-                $statement = $var['value'] === 'true';
-            }
-        } else {
-            $statement = $items[0] === 'true';
-        }
-
-        unset($items[0]);
-        foreach ($items as $key => $item) {
-            $debug[] = $item;
-            $count++;
-
-            if ($item === 'if') {
-                return $this->handleConditional(0, array_slice($items, $key - 1));
-            }
-
-            if ($item === 'else') continue;
-            if ($item === 'end' && !$isEndif) {
-                $isEndif = true;
-                continue;
-            }
-
-            if ($item === 'end' && !$isEndElse) {
-                break;
-            }
-
-            if ($statement && !$isEndif) {
-                $arr[] = $item;
-            }
-
-            if (!$statement && $isEndif && !$isEndElse) {
-                $arr[] = $item;
-            }
-        }
-
-        $return = $this->followTokens($arr);
-        $withReturn = $return[1];
-        $str = $return[0];
-
-        return [$count - 1, $str, $withReturn];
-    }
-
-    public function findVariableByNameAndType($variables, $variable)
-    {
-        foreach ($variables as $key => $var) {
-            if ($var['name'] === $variable['name'] && $var['type'] === $variable['type']) {
-                return $var;
-            }
-        }
-
-        return null;
-    }
-
-    public function findVariableByName($variables, $variable)
-    {
-        foreach ($variables as $key => $var) {
-            if ($var['name'] === $variable['name']) {
-                return $var;
-            }
-        }
-
-        return null;
-    }
-
-    public function findVariableIndexByName($variables, $variable)
-    {
-        foreach ($variables as $key => $var) {
-            if ($var['name'] === $variable['name']) {
-                return $key;
-            }
-        }
-
-        return null;
-    }
-
-    public function getType($item)
-    {
-        if ($item === 'true' || $item === 'false') {
-            return 'boolean';
-        }
-
-        $int = intval($item);
-
-        if ("$int" === $item) {
-            return 'number';
-        }
-
-        return 'string';
-    }
-
-
-    function array_flatten($array)
+    function array_flatten($array): array
     {
         if (!is_array($array)) {
-            return false;
+            return [];
         }
+
         $result = array();
         foreach ($array as $key => $value) {
             if (is_array($value)) {

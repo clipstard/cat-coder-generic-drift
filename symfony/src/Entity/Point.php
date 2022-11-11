@@ -4,205 +4,142 @@ namespace App\Entity;
 
 class Point
 {
-    protected $x;
-    protected $y;
-    protected $i;
-    protected $j;
-    protected $color;
-    /** @var bool */
-    protected $root;
-    /** @var int */
-    protected $position;
+    public int $x;
+    public int $y;
+    public ?Point $top = null;
+    public ?Point $left = null;
+    public ?Point $right = null;
+    public ?Point $bottom = null;
+    public ?Point $previous = null;
+    public bool $isRoot = false;
+    public bool $collected = false;
+    public string $letter;
+    public string $reverseLetter;
 
-    public function __construct($position = null, $color = null)
-    {
-        $this->position = $position;
-        $this->color = $color;
-    }
-
-    /**
-     * @return int
-     */
-    public function getPosition(): int
-    {
-        return $this->position;
-    }
-
-    /**
-     * @param int $position
-     *
-     * @return Point
-     */
-    public function setPosition(int $position): Point
-    {
-        $this->position = $position;
-
-        return $this;
-    }
-
-    /**
-     * @param Point $point
-     * @return int
-     */
-    public function getManhattanDistance(Point $point): int
-    {
-        return abs($this->x - $point->getX()) + abs($this->y - $point->getY());
-    }
-
-    /**
-     * @return null
-     */
-    public function getX()
-    {
-        return $this->x;
-    }
-
-    /**
-     * @param null $x
-     *
-     * @return Point
-     */
-    public function setX($x): Point
+    public function __construct($x = null, $y = null)
     {
         $this->x = $x;
-
-        return $this;
-    }
-
-    /**
-     * @return null
-     */
-    public function getY()
-    {
-        return $this->y;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isRoot(): bool
-    {
-        return $this->root;
-    }
-
-    /**
-     * @param bool $root
-     *
-     * @return Point
-     */
-    public function setRoot(bool $root): Point
-    {
-        $this->root = $root;
-
-        return $this;
-    }
-
-    /**
-     * @param null $y
-     *
-     * @return Point
-     */
-    public function setY($y): Point
-    {
         $this->y = $y;
+        $this->letter = '';
+    }
 
-        return $this;
+    public function eq(Point $point) {
+        return $this->x === $point->x && $this->y === $point->y;
     }
 
     /**
-     * @return null
-     */
-    public function getColor()
-    {
-        return $this->color;
-    }
-
-    /**
-     * @param null $color
+     * @param Point|null $bottom
      *
      * @return Point
      */
-    public function setColor($color): Point
+    public function setBottom(?Point $bottom): self
     {
-        $this->color = $color;
+        $this->bottom = $bottom;
+        $bottom->previous = $this;
+        $bottom->letter = 'D';
+        $bottom->reverseLetter = 'U';
 
         return $this;
     }
 
     /**
-     * @param Point[]|array $array
+     * @param Point|null $left
+     *
+     * @return Point
      */
-    public static function sortByX(&$array)
+    public function setLeft(?Point $left): self
     {
-        $c = count($array);
-        for ($i = 0; $i < ($c - 1); $i++) {
-            for($j = $i + 1; $j < $c; $j++) {
-                if ($array[$i]->getX() > $array[$j]->getX()) {
-                    [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
-                }
+        $this->left = $left;
+        $left->previous = $this;
+        $left->letter = 'L';
+        $left->reverseLetter = 'R';
+
+        return $this;
+    }
+
+    /**
+     * @param Point|null $right
+     *
+     * @return Point
+     */
+    public function setRight(?Point $right): self
+    {
+        $this->right = $right;
+        $right->previous = $this;
+        $right->letter = 'R';
+        $right->reverseLetter = 'L';
+
+        return $this;
+    }
+
+    /**
+     * @param Point|null $top
+     *
+     * @return Point
+     */
+    public function setTop(?Point $top): self
+    {
+        $this->top = $top;
+        $top->previous = $this;
+        $top->letter = 'U';
+        $top->reverseLetter = 'D';
+
+        return $this;
+    }
+
+    public function isInTheTree($x, $y): bool
+    {
+        $point = $this;
+        while ($point !== null) {
+            if ($point->x === $x && $point->y == $y) {
+                return true;
             }
+
+            $point = $point->previous;
         }
+
+        return false;
     }
 
-
-    /**
-     * @param Point[]|array $array
-     */
-    public static function sortByPosition(&$array)
+    public function getPreviousMovement(): string
     {
-        $c = count($array);
-        for ($i = 0; $i < ($c - 1); $i++) {
-            for($j = $i + 1; $j < $c; $j++) {
-                if ($array[$i]->getPosition() > $array[$j]->getPosition()) {
-                    [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
-                }
-            }
+        if ($this->right && !$this->right->collected) {
+            return $this->right->letter;
         }
-    }
 
-    /**
-     * @param Point[]|array $array
-     */
-    public static function sortByColor(&$array)
-    {
-        $c = count($array);
-        for ($i = 0; $i < ($c - 1); $i++) {
-            for($j = $i + 1; $j < $c; $j++) {
-                if ($array[$i]->getColor() > $array[$j]->getColor()) {
-                    [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
-                }
-            }
+        if ($this->left && !$this->left->collected) {
+            return $this->left->letter;
         }
+
+        if ($this->top && $this->top->collected) {
+            return $this->top->letter;
+        }
+
+        if ($this->bottom && $this->bottom->collected) {
+            return $this->bottom->letter;
+        }
+
+        return $this->reverseLetter ?? '';
     }
 
-    /**
-     * @return null
-     */
-    public function getI()
+    public function getPrevious(): ?self
     {
-        return $this->i;
-    }
+        if ($this->right && !$this->right->collected) {
+            return $this->right;
+        }
 
-    /**
-     * @return null
-     */
-    public function getJ()
-    {
-        return $this->j;
-    }
+        if ($this->left && !$this->left->collected) {
+            return $this->left;
+        }
 
-    public function __toString()
-    {
-        return "{$this->x} {$this->y}";
-    }
+        if ($this->top && !$this->top->collected) {
+            return $this->top;
+        }
 
-    /**
-     * @return array
-     */
-    public function toArray()
-    {
-        return [
-            $this->getX(), $this->getI(), $this->getY(), $this->getJ()
-        ];
+        if ($this->bottom && !$this->bottom->collected) {
+            return $this->bottom;
+        }
+
+        return $this->previous;
     }
 }

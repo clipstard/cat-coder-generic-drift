@@ -16,11 +16,10 @@ class HomeController extends AbstractController
         $this->solver = $solver;
     }
 
+    #[Route('/', name: 'home')]
     public function __invoke()
     {
-
-        return new Response($this->solver->solveLast());
-//        return new JsonResponse(['response' => $this->solver->solve()]);
+        return new Response($this->solver->process());
     }
 }
 

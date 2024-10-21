@@ -2,38 +2,103 @@
 
 namespace App\Service;
 
-use App\Entity\Player;
 
 class Solver
 {
-    /** @var string $projectDir */
-    protected string $projectDir;
 
     /** @var FileReader $fileReader */
     protected FileReader $fileReader;
+    private array $ghostsPositions = [];
 
     public function __construct(
-        string     $projectDir,
-        FileReader $fileReader
+        protected string $projectDir,
+        FileReader       $fileReader,
     )
     {
-        $this->projectDir = $projectDir;
         $this->fileReader = $fileReader->setLevel(3)->setSubLevel('7');
     }
 
-    private array $countedPositions = [];
-    private array $ghostsPositions = [];
-
-    public function solveFirstLevel()
+    public function process(): string
     {
         $data = $this->fileReader->read();
-        $data = $this->array_flatten($data);
-        $gridSize = (int) $data[0];
+        $data = $this->arrayFlatten($data);
+        $gridSize = (int)$data[0];
+        # clear the data[0] since it is already read and its not level relevant
         unset($data[0]);
 
-        $count = 0;
-        $isAlive = true;
+        $map = $this->createMapFromSizes($data, $gridSize);
 
+        # removed keys leaves some undefineds
+        $data = array_values($data);
+        [$startX, $startY, $_, $movements] = $data;
+        $movements = str_split($movements);
+        # unset not level relevant data
+        unset($data[0], $data[1], $data[2], $data[3]);
+        # removed keys leaves some undefineds
+        $data = array_values($data);
+        $nrOfGhosts = (int)$data[0];
+        unset($data[0]);
+
+        $ghostsMovements = $this->readGhostMovements($nrOfGhosts, $data);
+
+        [$countCollectedCoins, $isAlive] = $this->processPlayerMovements(
+            $movements,
+            $ghostsMovements,
+            $map,
+            (int)$startX,
+            (int)$startY,
+        );
+
+        $results = [$countCollectedCoins, $isAlive ? 'YES' : 'NO'];
+        # output file to upload to contest page directly, formatted as required
+        $this->fileReader->write($results);
+
+        # output to index, to see the debug / results faster
+        return $this->getHtmlAsRows($results, 10);
+    }
+
+    protected function processPlayerMovements(
+        array $movements,
+        array $ghostsMovements,
+        array $map,
+        int $startX,
+        int $startY,
+    ): array
+    {
+        $countCollectedCoins = 0;
+        $isAlive = true;
+        $countedPositions = [];
+        $currentX = $startX - 1;
+        $currentY = $startY - 1;
+        foreach ($movements as $index => $movement) {
+            $this->moveGhosts($index, $ghostsMovements);
+
+            [$movementX, $movementY] = $this->convertLetterToAxisMovement($movement);
+            $currentX += $movementX;
+            $currentY += $movementY;
+
+            if ($this->playerDies($map, $currentX, $currentY)) {
+                $isAlive = false;
+                break;
+            }
+
+            foreach ($countedPositions as $countedPosition) {
+                [$x, $y] = $countedPosition;
+                # in case we already collected the coin for this square
+                if ($currentX === $x && $currentY === $y) {
+                    continue 2;
+                }
+            }
+
+            $countedPositions[] = [$currentX, $currentY];
+            $countCollectedCoins += (int)$this->checkPositionHasCoin($map, $currentX, $currentY);
+        }
+
+        return [$countCollectedCoins, $isAlive];
+    }
+
+    protected function createMapFromSizes(array &$data, int $gridSize): array
+    {
         $index = 0;
         $map = [];
         foreach ($data as $rowNum => $row) {
@@ -44,79 +109,42 @@ class Solver
             unset($data[$rowNum]);
         }
 
-        $data = array_values($data);
-        [$startX, $startY, $_, $movements] = $data;
-        unset($data[0],$data[1],$data[2],$data[3]);
-        $data = array_values($data);
-        $nrOfGhosts = (int) $data[0];
-        $ghostsMovements = [];
-        unset($data[0]);
+        return $map;
+    }
 
-        for ($i = 0; $i < $nrOfGhosts; $i++) {
-            $data = array_values($data);
-            [$ghostStartX, $ghostStartY, $_, $ghostMovements] = $data;
-            $this->ghostsPositions[$i] = [(int) $ghostStartX - 1, (int) $ghostStartY - 1];
-            $ghostsMovements[$i] = str_split($ghostMovements);
+    public function convertLetterToAxisMovement(string $movement): array
+    {
+        $x = match ($movement) {
+            'U' => -1,
+            'D' => 1,
+            default => 0,
+        };
 
-            unset($data[0], $data[1], $data[2], $data[3]);
+        $y = match ($movement) {
+            'L' => -1,
+            'R' => 1,
+            default => 0,
+        };
+
+       return [$x, $y];
+    }
+
+    function arrayFlatten($array): array
+    {
+        if (!is_array($array)) {
+            return [];
         }
 
-        $movements = str_split($movements);
-
-        $currentX = (int) $startX - 1;
-        $currentY = (int) $startY - 1;
-
-        $countedPositions = [];
-
-        dump($movements);
-        dump($map);
-        dump($map[$currentX][$currentY]);
-        dump(['star' => [$currentX, $currentY, $count]]);
-
-        foreach ($movements as $index => $movement) {
-            $this->moveGhosts($index, $ghostsMovements);
-
-            switch ($movement) {
-                case 'U':
-                    $currentX -= 1;  break;
-                case 'D':
-                    $currentX += 1; break;
-                case 'L':
-                    $currentY -= 1; break;
-                case 'R':
-                    $currentY += 1; break;
-                default:
-                    break;
+        $result = array();
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $result = array_merge($result, $this->arrayFlatten($value));
+            } else {
+                $result = array_merge($result, array($key => $value));
             }
-
-            dump([
-                'x y' => [$currentY, $currentX],
-                'movement' => $movement,
-                'movementIndex' => $index,
-                'currentScore' => $count,
-                'currentLeter' => $map[$currentX][$currentY],
-                'ghostCurrentPositions' => $this->ghostsPositions,
-            ]);
-
-            if ($this->dies($map, $currentX, $currentY)) {
-                $isAlive = false;
-                break;
-            }
-
-            foreach ($countedPositions as $countedPosition) {
-                [$x, $y] = $countedPosition;
-                if ($currentX === $x && $currentY === $y) continue 2;
-            }
-
-            $countedPositions[] = [$currentX, $currentY];
-            $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
-            dump(['newScore' => $count]);
         }
-//die;
-        $res = [$count, $isAlive ? 'YES' : 'NO'];
-        $this->fileReader->write($res);
 
-        return $this->jsonify($res, 10);
+        return $result;
     }
 
     public function moveGhosts($moveIndex, array $ghostsMovements): void
@@ -124,29 +152,23 @@ class Solver
         foreach ($ghostsMovements as $ghostIndex => $movements) {
             $movement = $movements[$moveIndex];
             [$currentX, $currentY] = $this->ghostsPositions[$ghostIndex];
-            switch ($movement) {
-                case 'U':
-                    $currentX -= 1;  break;
-                case 'D':
-                    $currentX += 1; break;
-                case 'L':
-                    $currentY -= 1; break;
-                case 'R':
-                    $currentY += 1; break;
-                default:
-                    break;
-            }
 
-            $this->ghostsPositions[$ghostIndex] = [(int) $currentX, (int) $currentY];
+            [$movementX, $movementY] = $this->convertLetterToAxisMovement($movement);
+            $currentX += $movementX;
+            $currentY += $movementY;
+
+            $this->ghostsPositions[$ghostIndex] = [(int)$currentX, (int)$currentY];
         }
     }
 
-    public function dies(array $map, $posX, $posY): bool
+    public function playerDies(array $map, $posX, $posY): bool
     {
+        # hitting a wall
         if ($map[$posX][$posY] === 'W') {
             return true;
         }
 
+        # hitting any of a ghost
         foreach ($this->ghostsPositions as $ghostsPosition) {
             [$ghostX, $ghostY] = $ghostsPosition;
             if ($posX === $ghostX && $posY === $ghostY) {
@@ -157,101 +179,12 @@ class Solver
         return false;
     }
 
-    public function checkPosition(array $map, $posX, $posY): bool
+    public function checkPositionHasCoin(array $map, $posX, $posY): bool
     {
         return $map[$posX][$posY] === 'C';
     }
 
-    function array_flatten($array): array
-    {
-        if (!is_array($array)) {
-            return [];
-        }
-
-        $result = array();
-        foreach ($array as $key => $value) {
-            if (is_array($value)) {
-                $result = array_merge($result, $this->array_flatten($value));
-            } else {
-                $result = array_merge($result, array($key => $value));
-            }
-        }
-
-        return $result;
-    }
-
-    public function countUniques($array)
-    {
-        $c = count($array);
-        $count = 0;
-        $items = [];
-        $found = false;
-        foreach ($array as $item) {
-            if (!in_array($item, $items, true)) {
-                $items[] = $item;
-            }
-        }
-
-        return count($items);
-    }
-
-    public function removeDuplicates($array)
-    {
-        $arr = [];
-        foreach ($array as $item) {
-            if (!in_array($item, $arr, true)) {
-                $arr[] = $item;
-            }
-        }
-
-        return $arr;
-    }
-
-    /**
-     * @param $id
-     * @param PLayer[] $players
-     * @return int|null
-     */
-    public function findPlayer($id, array $players): ?int
-    {
-        foreach ($players as $key => $player) {
-            if ($player->id === $id) {
-                return $key;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param Player[] $players
-     */
-    public function collapseSamePLayers(array $players): array
-    {
-        $newPlayers = [];
-        $len = count($players);
-        $stats = [];
-        for ($i = 0; $i < $len; $i++) {
-            $id = $players[$i]->id;
-            $win = $players[$i]->wins;
-
-            if (array_key_exists($id, $stats)) {
-                if ($win) {
-                    $stats[$id] += $win;
-                }
-            } else {
-                $stats[$id] = $win;
-            }
-        }
-
-        foreach ($stats as $key => $stat) {
-            $newPlayers[] = new Player((int)substr($key, 3), null, $stat);
-        }
-
-        return $newPlayers;
-    }
-
-    public function jsonify($data, $limit = 100, $withCount = false)
+    public function getHtmlAsRows($data, $limit = 100, $withCount = false): string
     {
         if (!is_array($data)) {
             return "" . $data;
@@ -290,5 +223,43 @@ class Solver
         }
 
         return $str;
+    }
+
+    public function countUniques(array $array): int
+    {
+        return count($this->removeDuplicates($array));
+    }
+
+    public function removeDuplicates(array $array): array
+    {
+        $arr = [];
+        foreach ($array as $item) {
+            if (!in_array($item, $arr, true)) {
+                $arr[] = $item;
+            }
+        }
+
+        return $arr;
+    }
+
+    /**
+     * @param int $nrOfGhosts
+     * @param mixed $data
+     * @return array
+     */
+    public function readGhostMovements(int $nrOfGhosts, mixed $data): array
+    {
+        $ghostsMovements = [];
+
+        for ($i = 0; $i < $nrOfGhosts; $i++) {
+            $data = array_values($data);
+            [$ghostStartX, $ghostStartY, $_, $currentGhostMovements] = $data;
+            $this->ghostsPositions[$i] = [(int)$ghostStartX - 1, (int)$ghostStartY - 1];
+            $ghostsMovements[$i] = str_split($currentGhostMovements);
+
+            unset($data[0], $data[1], $data[2], $data[3]);
+        }
+
+        return $ghostsMovements;
     }
 }

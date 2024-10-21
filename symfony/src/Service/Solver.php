@@ -2,248 +2,221 @@
 
 namespace App\Service;
 
-use App\Entity\Service\Earning;
-use App\Entity\Service\Pair;
-use App\Entity\Service\Point;
-use App\Entity\Service\Table;
+use App\Entity\Player;
 
 class Solver
 {
     /** @var string $projectDir */
-    protected $projectDir;
+    protected string $projectDir;
 
     /** @var FileReader $fileReader */
-    protected $fileReader;
+    protected FileReader $fileReader;
 
     public function __construct(
-        string $projectDir,
+        string     $projectDir,
         FileReader $fileReader
     )
     {
         $this->projectDir = $projectDir;
-        $this->fileReader = $fileReader->setLevel(1)->setSubLevel('0');
+        $this->fileReader = $fileReader->setLevel(3)->setSubLevel('7');
     }
+
+    private array $countedPositions = [];
+    private array $ghostsPositions = [];
 
     public function solveFirstLevel()
     {
         $data = $this->fileReader->read();
-//        $data = "F 1 739 F 2 164 F 3 227 F 4 778 F 5 423 F 6 538 F 7 155 F 8 425 F 9 878 B 1 739 B 2 164 B 3 227 B 4 778 B 5 423 B 6 538 B 7 155 B 8 425 B 9 878";
+        $data = $this->array_flatten($data);
+        $gridSize = (int) $data[0];
+        unset($data[0]);
 
-//        $arrData = explode(' ', $data);
+        $count = 0;
+        $isAlive = true;
 
-        /** @var Earning[] $earnings */
-        $earnings = $this->readEarnings($data);
+        $index = 0;
+        $map = [];
+        foreach ($data as $rowNum => $row) {
+            if ($index++ >= $gridSize) break;
 
-        Earning::orderBy($earnings);
+            $items = str_split($row);
+            $map[] = $items;
+            unset($data[$rowNum]);
+        }
 
-        $results = [];
-        $fEarnings = [];
-        /** @var Earning[] $bEarnings */
-        $bEarnings = [];
+        $data = array_values($data);
+        [$startX, $startY, $_, $movements] = $data;
+        unset($data[0],$data[1],$data[2],$data[3]);
+        $data = array_values($data);
+        $nrOfGhosts = (int) $data[0];
+        $ghostsMovements = [];
+        unset($data[0]);
 
-        foreach ($earnings as $earning) {
-            if ($earning->getDestination() === 'B') {
-                $bEarnings[] = $earning;
+        for ($i = 0; $i < $nrOfGhosts; $i++) {
+            $data = array_values($data);
+            [$ghostStartX, $ghostStartY, $_, $ghostMovements] = $data;
+            $this->ghostsPositions[$i] = [(int) $ghostStartX - 1, (int) $ghostStartY - 1];
+            $ghostsMovements[$i] = str_split($ghostMovements);
+
+            unset($data[0], $data[1], $data[2], $data[3]);
+        }
+
+        $movements = str_split($movements);
+
+        $currentX = (int) $startX - 1;
+        $currentY = (int) $startY - 1;
+
+        $countedPositions = [];
+
+        dump($movements);
+        dump($map);
+        dump($map[$currentX][$currentY]);
+        dump(['star' => [$currentX, $currentY, $count]]);
+
+        foreach ($movements as $index => $movement) {
+            $this->moveGhosts($index, $ghostsMovements);
+
+            switch ($movement) {
+                case 'U':
+                    $currentX -= 1;  break;
+                case 'D':
+                    $currentX += 1; break;
+                case 'L':
+                    $currentY -= 1; break;
+                case 'R':
+                    $currentY += 1; break;
+                default:
+                    break;
+            }
+
+            dump([
+                'x y' => [$currentY, $currentX],
+                'movement' => $movement,
+                'movementIndex' => $index,
+                'currentScore' => $count,
+                'currentLeter' => $map[$currentX][$currentY],
+                'ghostCurrentPositions' => $this->ghostsPositions,
+            ]);
+
+            if ($this->dies($map, $currentX, $currentY)) {
+                $isAlive = false;
+                break;
+            }
+
+            foreach ($countedPositions as $countedPosition) {
+                [$x, $y] = $countedPosition;
+                if ($currentX === $x && $currentY === $y) continue 2;
+            }
+
+            $countedPositions[] = [$currentX, $currentY];
+            $count += $this->checkPosition($map, $currentX, $currentY) ? 1 : 0;
+            dump(['newScore' => $count]);
+        }
+//die;
+        $res = [$count, $isAlive ? 'YES' : 'NO'];
+        $this->fileReader->write($res);
+
+        return $this->jsonify($res, 10);
+    }
+
+    public function moveGhosts($moveIndex, array $ghostsMovements): void
+    {
+        foreach ($ghostsMovements as $ghostIndex => $movements) {
+            $movement = $movements[$moveIndex];
+            [$currentX, $currentY] = $this->ghostsPositions[$ghostIndex];
+            switch ($movement) {
+                case 'U':
+                    $currentX -= 1;  break;
+                case 'D':
+                    $currentX += 1; break;
+                case 'L':
+                    $currentY -= 1; break;
+                case 'R':
+                    $currentY += 1; break;
+                default:
+                    break;
+            }
+
+            $this->ghostsPositions[$ghostIndex] = [(int) $currentX, (int) $currentY];
+        }
+    }
+
+    public function dies(array $map, $posX, $posY): bool
+    {
+        if ($map[$posX][$posY] === 'W') {
+            return true;
+        }
+
+        foreach ($this->ghostsPositions as $ghostsPosition) {
+            [$ghostX, $ghostY] = $ghostsPosition;
+            if ($posX === $ghostX && $posY === $ghostY) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function checkPosition(array $map, $posX, $posY): bool
+    {
+        return $map[$posX][$posY] === 'C';
+    }
+
+    function array_flatten($array): array
+    {
+        if (!is_array($array)) {
+            return [];
+        }
+
+        $result = array();
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $result = array_merge($result, $this->array_flatten($value));
             } else {
-                $fEarnings[] = $earning;
+                $result = array_merge($result, array($key => $value));
             }
         }
 
-        $i = 0;
-        $c = count($bEarnings);
-        $sum = 0;
-
-        /** @var Earning $f */
-        foreach ($fEarnings as $f) {
-            $amount = $f->getAmount();
-            $payed = $this->findExactAmount($bEarnings, $amount);
-            if (!$payed) {
-                $results[] = $f->getDay();
-            }
-        }
-
-//        $lastDay = $fEarnings[count($fEarnings) - 1]->getDay();
-        return $this->jsonify($results, 30, false);
+        return $result;
     }
 
-    private function findExactAmount($bEarnings, $amount): int
+    public function countUniques($array)
     {
-        $canBe = [];
-        /** @var Earning $earning */
-        foreach ($bEarnings as $earning) {
-            if (!$earning->isActive()) continue;
-
-            $payed = $earning->getAmount();
-            if ($payed === $amount) {
-               $earning->setActive(false);
-               return $amount;
-            }
-
-            if ($payed < $amount) {
-                $canBe[] = $earning;
-            }
-        }
-
-        return $this->findPayedSums($canBe, $amount);
-    }
-
-    /**
-     * @param Earning[] $earnings
-     * @param int $amount
-     * @return int
-     */
-    private function findPayedSums($earnings, $amount)
-    {
-        if ($payed = $this->findSameSum($earnings, $amount)) {
-            return $payed;
-        }
-
-        $c = count($earnings);
-        for ($i = 0; $i < $c - 3; $i++) {
-            for ($j = $i + 1; $j < $c - 2; $j++) {
-                if ($this->isMakingSum($amount, $earnings[$i], $earnings[$j])) {
-                    return $amount;
-                }
-
-                for ($k = $j + 1; $k < $c - 1; $k++) {
-                    if (
-                        $this->isMakingSum($amount, $earnings[$j], $earnings[$k]) ||
-                        $this->isMakingSum($amount, $earnings[$j], $earnings[$k], $earnings[$i])
-                    ) {
-                        return $amount;
-                    }
-
-                    for($l = $k + 1; $l < $c; $l++) {
-                        if (
-                            $this->isMakingSum($amount, $earnings[$l], $earnings[$k]) ||
-                            $this->isMakingSum($amount, $earnings[$j], $earnings[$k], $earnings[$l]) ||
-                            $this->isMakingSum($amount, $earnings[$j], $earnings[$k], $earnings[$l], $earnings[$i])
-                        ) {
-                            return $amount;
-                        }
-                    }
-                }
-            }
-        }
-
-        return 0;
-    }
-
-    private function isMakingSum($amount, ...$args): bool
-    {
-        $sum = 0;
-        /** @var Earning $arg */
-        foreach ($args as $arg) {
-            $sum += $arg->getAmount();
-        }
-
-        if ($amount === $sum) {
-            foreach ($args as $arg) {
-                $arg->setActive(false);
-            }
-        }
-
-        return $amount === $sum;
-    }
-
-    private function findSameSum($earnings, $amount, $notInclude = []): int
-    {
-        $c = count($earnings);
-        $found = [];
-        for ($i = 0; $i < $c - 1; $i++ ) {
-            if (!$earnings[$i]->isActive()) continue;
-            $a = $earnings[$i]->getAmount();
-            if (count($found) && $this->getItemByIndex($found, 0)->getAmount() !== $a) continue;
-
-            for ($j = $i + 1; $j < $c; $j++) {
-                if (!$earnings[$j]->isActive()) continue;
-                if ($a === $earnings[$j]->getAmount() && !in_array($a, $notInclude, true)) {
-                    $found[$earnings[$i]->getId()] = $earnings[$i];
-                    $found[$earnings[$j]->getId()] = $earnings[$j];
-                }
-            }
-        }
-
-        $f = count($found);
-        if ($f && $this->getItemByIndex($found, 0)->getAmount() * $f === $amount) {
-            foreach ($found as $item) {
-                $item->setActive(false);
-            }
-
-            return $amount;
-        }
-
-        if ($f) {
-            return $this->findSameSum($earnings, $amount, array_merge($notInclude, [$this->getItemByIndex($found, 0)->getAmount()]));
-        }
-
-        return 0;
-    }
-
-    public function getItemByIndex($array, $index)
-    {
-        $a = 0;
-
+        $c = count($array);
+        $count = 0;
+        $items = [];
+        $found = false;
         foreach ($array as $item) {
-            if ($a++ === $index) {
-                return $item;
+            if (!in_array($item, $items, true)) {
+                $items[] = $item;
             }
         }
 
-        return null;
+        return count($items);
     }
 
-    private function readEarnings($data)
+    public function removeDuplicates($array)
     {
-        $c = count ($data);
         $arr = [];
-        $a = 1;
-        for ($i = 0; $i < $c; $i += 3) {
-            $e = new Earning($data[$i], (int)$data[$i + 1], (int) $data[$i + 2]);
-            $e->setId($a++);
-            $arr[] = $e;
+        foreach ($array as $item) {
+            if (!in_array($item, $arr, true)) {
+                $arr[] = $item;
+            }
         }
 
         return $arr;
     }
 
     /**
-     * @param Table $table
-     * @param $path
-     * @return mixed
+     * @param $id
+     * @param PLayer[] $players
+     * @return int|null
      */
-    public function followPath($table, $path)
+    public function findPlayer($id, array $players): ?int
     {
-        $u = 0;
-        [$color, $starting, $length] = $path;
-        $c = count($path);
-        $steps = 0;
-        for ($i = 3; $i < $c; $i++) {
-            try {
-                $starting = $table->doAction($starting, $color, $path[$i]);
-            } catch (\Exception $exception) {
-                $steps++;
-                break;
-            }
-
-            $steps++;
-        }
-
-        return [$steps, $starting];
-    }
-
-    /**
-     * @param Point[]|array $points
-     * @param $index
-     * @param $color
-     * @return Point|null
-     */
-    private function findNextPointByColor($points, $index, $color): ?Point
-    {
-        $c = count($points);
-        for ($i = $index; $i < $c; $i++) {
-            if ($points[$i]->getColor() === $color) {
-                return $points[$i];
+        foreach ($players as $key => $player) {
+            if ($player->id === $id) {
+                return $key;
             }
         }
 
@@ -251,40 +224,31 @@ class Solver
     }
 
     /**
-     * @param $array
-     * @return Pair[]|array
+     * @param Player[] $players
      */
-    private function findPairs($array)
+    public function collapseSamePLayers(array $players): array
     {
-        $pairs = [];
+        $newPlayers = [];
+        $len = count($players);
+        $stats = [];
+        for ($i = 0; $i < $len; $i++) {
+            $id = $players[$i]->id;
+            $win = $players[$i]->wins;
 
-        $c = count($array);
-        $lastPair = null;
-        for ($i = 0; $i < ($c - 1); $i++) {
-            for ($j = ($i + 1); $j < $c; $j++) {
-                $sum = $array[$i] + $array[$j];
-                if ($sum === 1 || $sum === -1) {
-                    $pairs[] = new Pair($array[$i], $array[$j], $i, $j);
+            if (array_key_exists($id, $stats)) {
+                if ($win) {
+                    $stats[$id] += $win;
                 }
+            } else {
+                $stats[$id] = $win;
             }
         }
 
-//        Pair::sortByX($pairs);
-        return $pairs;
-    }
-
-    private function isSorted(&$array)
-    {
-        $c = count($array);
-        for ($i = 0; $i < $c - 1; $i++) {
-            for ($j = $i + 1; $j < $c; $j++) {
-                if ($array[$i] > $array[$j]) {
-                    return false;
-                }
-            }
+        foreach ($stats as $key => $stat) {
+            $newPlayers[] = new Player((int)substr($key, 3), null, $stat);
         }
 
-        return true;
+        return $newPlayers;
     }
 
     public function jsonify($data, $limit = 100, $withCount = false)
@@ -296,7 +260,7 @@ class Solver
         $str = '';
 
 
-        if (is_array($data) && count($data) && !is_array($this->getItemByIndex($data, 0))) {
+        if (count($data) && !is_array($data[array_key_first($data)])) {
             $c = count($data);
             if ($withCount) {
                 $str .= $c . ' ';
@@ -311,10 +275,10 @@ class Solver
             }
         }
 
-        if (is_array($data) && count($data) && is_array($this->getItemByIndex($data, 0))) {
-            foreach ($data as $row) {
+        if (count($data) && is_array($data[array_key_first($data)])) {
+            foreach ($data as $key => $row) {
                 $c = count($row);
-                $keys = array_keys($data);
+                $keys = array_keys($row);
                 for ($i = 0; $i < $c; $i++) {
                     $str .= "{$row[$keys[$i]]}, ";
                     if ($i && $i % $limit === 0) {

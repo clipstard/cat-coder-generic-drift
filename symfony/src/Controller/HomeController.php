@@ -19,7 +19,7 @@ class HomeController extends AbstractController
     public function __invoke()
     {
 
-        return new Response($this->solver->solveLast());
+        return new Response($this->solver->solveFirstLevel());
 //        return new JsonResponse(['response' => $this->solver->solve()]);
     }
 }
